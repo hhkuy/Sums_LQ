@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const path = require('path'); // NEW: لزوم استخدام sendFile
 
 const app = express();
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -176,12 +177,10 @@ app.post('/api/save-content-file', async (req, res) => {
     let oldSha = await getFileSha(MAIN_REPO_NAME, filePath);
     if(oldSha !== sha){
       // ربما تغير الملف في GitHub!
-      // يمكن التعامل مع تعارض النسخ حسب الحاجة
       console.warn("Possible conflict - SHA mismatch");
     }
 
     // نفترض أن الملف يحتوي كائن JSON في الشكل { title, content }
-    // لذلك نقوم بقراءة القديم أولاً
     const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
@@ -224,7 +223,6 @@ app.post('/api/save-content-file', async (req, res) => {
 });
 
 // ================ 7) رفع صورة إلى مستودع الصور (IMAGES_REPO_NAME) ================
-// يمكن تعديل المسار /api/upload-image ليتناسب مع منطقك الخاص برفع الملف واسمه
 app.post('/api/upload-image', async (req, res) => {
   try {
     let { name, base64 } = req.body;
@@ -239,7 +237,6 @@ app.post('/api/upload-image', async (req, res) => {
 
     let fileSha = await getFileSha(IMAGES_REPO_NAME, path);
     if(fileSha){
-      // لو موجود ملف بنفس الاسم (احتمال ضئيل) اضف عشوائي
       newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
       path = `pic/${newFileName}`;
     }
@@ -256,7 +253,6 @@ app.post('/api/upload-image', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      // رابط raw
       let rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
       return res.json({ success:true, url: rawUrl, filePath: `pic/${newFileName}` });
     } else {
@@ -297,7 +293,12 @@ app.delete('/api/delete-image', async (req, res) => {
   }
 });
 
-// serve admin.html + أي ملفات ثابتة إن لزم (يمكنك استخدام مجلد public)
+// NEW: serve admin.html at root to fix "Cannot GET /"
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// serve admin.html + أي ملفات ثابتة
 app.use(express.static(__dirname));
 
 // افتراضي: استمع على بورت 3000 محليًا
