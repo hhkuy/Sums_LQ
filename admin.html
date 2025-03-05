@@ -79,12 +79,15 @@
     /* محرر الماركداون + عرض النتيجة */
     #markdown-input {
       border-radius: 15px;
+      overflow: auto;
       resize: none;
       height: 300px;
       width: 100%;
-      /* للسماح بالسحب والتمرير بحرية */
-      overflow-y: auto;
-      cursor: default; /* يستطيع المستخدم السحب للتمرير */
+      cursor: grab;
+    }
+    /* لتفعيل سحب للتمرير بالماوس */
+    #markdown-input:active {
+      cursor: grabbing;
     }
     #markdown-result {
       margin-top: 20px;
@@ -95,11 +98,12 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-    #floatScrollBtn {
+    /* زر تعديل/حذف الأدوات المدخلة */
+    #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
       height: 50px;
-      background: #4a90e2;
+      background: #0d6efd;
       color: #fff;
       border: none;
       border-radius: 50%;
@@ -111,12 +115,11 @@
       z-index: 999;
       top: 50%;
       right: 30px;
-      transform: translateY(-50%);
+      transform: translateY(-140%);
     }
-    #floatScrollBtn:hover {
+    #floatManageTriggersBtn:hover {
       opacity: 0.8;
     }
-
     /* زر الأدوات العائم (للـ triggers وغيرها) */
     #floatToolsBtn {
       position: fixed;
@@ -134,17 +137,17 @@
       z-index: 999;
       top: 50%;
       right: 30px;
-      transform: translate(70px, -50%); /* فوق زر التنقل مباشرة */
+      transform: translateY(-50%);
     }
     #floatToolsBtn:hover {
       opacity: 0.8;
     }
-    /* زر العائم الجديد لعرض قائمة الـ triggers */
-    #floatManageTriggersBtn {
+    /* زر التمرير */
+    #floatScrollBtn {
       position: fixed;
       width: 50px;
       height: 50px;
-      background: #17a2b8;
+      background: #4a90e2;
       color: #fff;
       border: none;
       border-radius: 50%;
@@ -156,9 +159,9 @@
       z-index: 999;
       top: 50%;
       right: 30px;
-      transform: translate(140px, -50%); /* فوقهم */
+      transform: translateY(40%);
     }
-    #floatManageTriggersBtn:hover {
+    #floatScrollBtn:hover {
       opacity: 0.8;
     }
 
@@ -175,7 +178,7 @@
       background: #fff;
       border-radius: 8px;
       padding: 20px;
-      max-width: 600px;
+      max-width: 500px;
       width: 90%;
       text-align: center;
     }
@@ -204,24 +207,12 @@
     .alert-success {
       margin-top: 10px;
     }
-    .pointer-select {
-      background: #f0f0c9;
-      border: 1px dashed #aaa;
-      display: inline-block;
-      padding: 2px 4px;
-      margin: 2px;
-      cursor: pointer;
-    }
-    .pointer-select.active {
-      background: #fdd835;
-      border: 1px solid #333;
-    }
-    .triggers-list-item {
-      background: #f8f9fa;
-      padding: 8px;
-      margin-bottom: 5px;
-      border-radius: 5px;
-      text-align: left;
+    /* تحديد النص لإدخال الأدوات (بشكل بسيط) */
+    .selection-guides {
+      position: absolute;
+      border: 2px dashed red;
+      pointer-events: none;
+      display: none;
     }
   </style>
 </head>
@@ -293,8 +284,8 @@
         <hr>
 
         <!-- محرر الماركداون -->
-        <label for="markdown-input" class="form-label">Markdown Editor:</label>
-        <textarea class="form-control" id="markdown-input" placeholder="Write or paste your markdown here..."></textarea>
+        <label for="markdown-input" class="form-label">Markdown Editor (drag to scroll):</label>
+        <textarea class="form-control" id="markdown-input"></textarea>
 
         <!-- زر واحد لتحويل -->
         <div class="row g-2 mt-2">
@@ -323,12 +314,12 @@
     </div>
   </div>
 
-  <!-- زر عائم للتمرير -->
-  <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
+  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
+  <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
   <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
   <button id="floatToolsBtn" onclick="openToolsModal()">⚙</button>
-  <!-- زر عائم لإدارة الـ triggers المدخلة -->
-  <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">✎</button>
+  <!-- زر عائم للتمرير -->
+  <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
   <!-- نظام النوافذ المنبثقة (modal) -->
   <div class="modal-overlay" id="alertOverlay">
@@ -359,21 +350,44 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools -->
+  <!-- نافذة منبثقة خاصة بـ Tools & Triggers -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
       <!-- هنا الأزرار المختلفة -->
       <div class="d-grid gap-2">
-        <button class="btn btn-outline-secondary" onclick="triggerAddLink()">Add Link</button>
-        <button class="btn btn-outline-secondary" onclick="triggerAddVideo()">Add Video</button>
-        <button class="btn btn-outline-secondary" onclick="triggerAddIframe()">Add iFrame</button>
-        <button class="btn btn-outline-secondary" onclick="triggerAddQuestionID()">Add Q-ID (for questions)</button>
-        <button class="btn btn-outline-secondary" onclick="triggerAddText()">Add Custom Text/Tag</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('link')">Add Link</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('video')">Add Video</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('iframe')">Add iFrame</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('qids')">Add Q-ID(s)</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('text')">Add Custom Text/Tag</button>
         <button class="btn btn-outline-secondary" onclick="openImageUploader()">Upload Image(s)</button>
       </div>
-      <div class="modal-buttons">
+      <div class="modal-buttons mt-2">
         <button class="btn btn-secondary" onclick="closeToolsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (تعديل/حذف/إعادة ترتيب) -->
+  <div class="modal-overlay" id="manageTriggersOverlay">
+    <div class="modal-box" id="manageTriggersModalBox">
+      <h3>Manage Inserted Triggers</h3>
+      <div id="insertedTriggersList" class="mb-3" style="text-align:left; max-height:300px; overflow:auto;"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeManageTriggersModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد -->
+  <div class="modal-overlay" id="triggerFormOverlay">
+    <div class="modal-box" style="text-align: left;">
+      <h3 id="triggerFormTitle">Add Link</h3>
+      <!-- أربع/خمس خطوات بسيطة -->
+      <div id="triggerFormContent"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeTriggerForm()">Cancel</button>
       </div>
     </div>
   </div>
@@ -410,16 +424,8 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الـ triggers -->
-  <div class="modal-overlay" id="manageTriggersOverlay">
-    <div class="modal-box">
-      <h3>Manage Inserted Triggers</h3>
-      <div id="triggersListContainer"></div>
-      <div class="modal-buttons">
-        <button class="btn btn-secondary" onclick="closeManageTriggersModal()">Close</button>
-      </div>
-    </div>
-  </div>
+  <!-- عنصرين توجيهيين للتحديد -->
+  <div class="selection-guides" id="selectionBox"></div>
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
@@ -488,6 +494,28 @@
     window.alert = async function(msg) { await customAlert(msg); };
     window.confirm = async function(msg) { return customConfirm(msg); };
     window.prompt = async function(msg, defVal) { return customPrompt(msg, defVal); };
+
+    /****
+     *  تفعيل السحب داخل الـ textarea للتمرير
+     ****/
+    (function enableDragScroll(){
+      const mdInput = document.getElementById('markdown-input');
+      let isDown = false, startY, scrollTop;
+      mdInput.addEventListener('mousedown', e => {
+        isDown = true;
+        startY = e.pageY - mdInput.offsetTop;
+        scrollTop = mdInput.scrollTop;
+      });
+      mdInput.addEventListener('mouseleave', () => { isDown = false; });
+      mdInput.addEventListener('mouseup', () => { isDown = false; });
+      mdInput.addEventListener('mousemove', e => {
+        if(!isDown) return;
+        e.preventDefault();
+        const y = e.pageY - mdInput.offsetTop;
+        const walk = (y - startY) * 1.5; // السرعة
+        mdInput.scrollTop = scrollTop - walk;
+      });
+    })();
 
     /****
      *                 الأزرار العائمة للتمرير
@@ -589,28 +617,24 @@
       let btnGroup = document.createElement('div');
       btnGroup.className = "btn-group-sm";
       
-      // زر تحريك للأعلى
       let upBtn = document.createElement('button');
       upBtn.className = "btn btn-secondary";
       upBtn.textContent = "▲";
       upBtn.onclick = () => moveNodeUp(path);
       btnGroup.appendChild(upBtn);
 
-      // زر تحريك للأسفل
       let downBtn = document.createElement('button');
       downBtn.className = "btn btn-secondary";
       downBtn.textContent = "▼";
       downBtn.onclick = () => moveNodeDown(path);
       btnGroup.appendChild(downBtn);
 
-      // زر تحرير
       let editBtn = document.createElement('button');
       editBtn.className = "btn btn-warning";
       editBtn.textContent = "Edit";
       editBtn.onclick = () => editNodeTitle(path);
       btnGroup.appendChild(editBtn);
 
-      // زر حذف
       let delBtn = document.createElement('button');
       delBtn.className = "btn btn-danger";
       delBtn.textContent = "Delete";
@@ -682,7 +706,6 @@
         if(newTitle === "") return;
         node.title = newTitle;
         
-        // إن كان له ملف محتوى، يجب إعادة تسمية الملف أيضًا، وتحديث حقل title بداخله
         if(node.dataFile){
           await renameContentFile(path, node); 
         }
@@ -693,7 +716,6 @@
       }
     }
 
-    // دالة تعيد سلسلة العناوين من الجذر حتى العقدة الأم
     function getTitlesChain(path){
       let chain = [];
       function recurse(nodeList, currentPath){
@@ -734,10 +756,9 @@
       return chain;
     }
 
-    // إعادة تسمية الملف في GitHub وتحديث الـ title في محتواه
     async function renameContentFile(path, node){
       try {
-        let oldPath = node.dataFile;  // الاسم المختصر بدون exp_data/
+        let oldPath = node.dataFile; 
         let parentPath = path.slice(0, -1);
         let newFileName = "";
 
@@ -779,7 +800,6 @@
       }
     }
 
-    // حذف العقدة
     async function deleteNode(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
@@ -824,7 +844,6 @@
       }
     }
 
-    // إضافة عقدة جديدة
     async function addNode(){
       if(!expTopics) {
         alert("Load exp_topics.json first!");
@@ -881,7 +900,6 @@
       }
     }
 
-    // توليد اسم للملف (lowercase)
     function generateFileNameForContent(path, newTitle){
       if(path === 'root'){
         let fn = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
@@ -900,7 +918,6 @@
         return finalName;
       }
     }
-    // توليد الـ title داخل الملف
     function generateTitleFieldForContent(path, newTitle){
       if(path === 'root'){
         return newTitle; 
@@ -914,7 +931,6 @@
         }
       }
     }
-
     function fillParentSelect(){
       let sel = document.getElementById('parentSelect');
       sel.innerHTML = '';
@@ -997,7 +1013,7 @@
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
         
-        // نحول الـ HTML إلى ماركداون
+        // تحويل HTML القديم → ماركداون
         let turndownService = new TurndownService();
         let md = turndownService.turndown(contentObj.content);
         document.getElementById('markdown-input').value = md;
@@ -1108,7 +1124,7 @@
     }
 
     /****
-     * زر العائم لأدوات الـ triggers
+     * زر عائم لأدوات الـ triggers
      ****/
     function openToolsModal(){
       document.getElementById('toolsOverlay').style.display = 'flex';
@@ -1117,174 +1133,276 @@
       document.getElementById('toolsOverlay').style.display = 'none';
     }
 
-    // مصفوفة لتخزين معلومات الـ triggers
-    let insertedTriggers = [];
+    /****
+     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
+     ****/
+    function openManageTriggersModal(){
+      // فكرة بسيطة: نعرض أي عناصر ذات خصائص "data-qids" أو "video-container" أو ...
+      // أو يمكننا فقط عرض معلومات شكلية.
+      let overlay = document.getElementById('manageTriggersOverlay');
+      let container = document.getElementById('insertedTriggersList');
+      container.innerHTML = "";
+      // نجلب المحتوى النهائي:
+      let html = document.getElementById('markdown-result').innerHTML;
+      // يمكنك هنا عمل parse للـ HTML والبحث عن كل عنصر (link, iframe, span.question-trigger, ... إلخ).
+      // لأغراض التبسيط، سنبحث عن بعض العلامات بشكل عام ونضعها في القائمة.
+      container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
+      overlay.style.display = 'flex';
+    }
+    function closeManageTriggersModal(){
+      document.getElementById('manageTriggersOverlay').style.display = 'none';
+    }
 
     /****
-     *   آلية تحديد الجملة / النص في المحرر
+     * عملية اختيار النص لتحديد موضع الإضافة (Before/After/Inside) 
      ****/
-    async function getSelectionInMarkdown(){
-      // يمكننا طلب من المستخدم كتابة النص الذي يريد تحديده أو نستخدم approach معين
-      // هنا فقط سنطلب منه نص
-      let selectedPhrase = await prompt("Enter or paste the text/phrase you want to operate on:", "");
-      if(!selectedPhrase) return null;
-      let insertionMode = await prompt("Enter insertion mode? (before/after/inside)", "inside");
-      if(!insertionMode) return null;
-      return { text: selectedPhrase, mode: insertionMode.trim().toLowerCase() };
+    let userSelectionRange = null;
+    function beginSelectionProcess(callback){
+      // نعتمد أسلوبًا مبسطًا: نطلب من المستخدم النقر/السحب في #markdown-input لتحديد النص
+      alert("برجاء تحديد النص أو موضعه بالـ textarea أدناه. ثم انقر موافق بالنافذة التالية.");
+      setTimeout(async ()=>{
+        let conf = await confirm("هل انتهيت من تحديد النص؟");
+        if(!conf){
+          callback(null);
+          return;
+        }
+        // نحصل على selection
+        let ta = document.getElementById('markdown-input');
+        // إن لم يكن هناك selection حقيقي، نعيده null
+        let start = ta.selectionStart;
+        let end = ta.selectionEnd;
+        callback({start, end});
+      }, 500);
     }
 
-    // إضافة رابط
-    async function triggerAddLink(){
+    /****
+     * واجهة إضافة Trigger
+     ****/
+    let currentTriggerType = null;
+    function openTriggerForm(type){
       closeToolsModal();
-      let desc = await prompt("Enter description (optional):", "");
-      if(desc === null) desc = "";
-      // select text portion
-      let selection = await getSelectionInMarkdown();
-      if(!selection) return;
-      let urlVal = await prompt("Enter Link URL:", "https://");
-      if(!urlVal) return;
-      // نسجل كـ trigger
-      let trigId = "TRG_"+Date.now();
-      let snippet = `
-<!--TRIGGER:${trigId}-->
-[Add Link Trigger] 
-Desc: ${desc}
-SelectedText: ${selection.text}
-Mode: ${selection.mode}
-LinkURL: ${urlVal}
-<!--/TRIGGER-->
-`;
-      // نضعه في الماركداون
-      let mdInput = document.getElementById('markdown-input');
-      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, `[${desc || selection.text}](${urlVal})`);
-      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
-      convertMarkdown();
-      insertedTriggers.push({ id: trigId, type: "link", desc, text: selection.text, mode: selection.mode, link: urlVal });
-    }
+      currentTriggerType = type;
+      let overlay = document.getElementById('triggerFormOverlay');
+      let titleEl = document.getElementById('triggerFormTitle');
+      let contentEl = document.getElementById('triggerFormContent');
+      overlay.style.display = 'flex';
+      contentEl.innerHTML = "";
 
-    // إضافة فيديو
-    async function triggerAddVideo(){
-      closeToolsModal();
-      let desc = await prompt("Enter description (optional):", "");
-      if(desc === null) desc = "";
-      // تحديد
-      let selection = await getSelectionInMarkdown();
-      if(!selection) return;
-      let vidUrl = await prompt("Enter video URL:", "https://");
-      if(!vidUrl) return;
-      // iframe video
-      let trigId = "TRG_"+Date.now();
-      let snippet = `
-<!--TRIGGER:${trigId}-->
-[Add Video Trigger]
-Desc: ${desc}
-SelectedText: ${selection.text}
-Mode: ${selection.mode}
-VideoURL: ${vidUrl}
-<!--/TRIGGER-->
-`;
-      // HTML
-      let code = `<video src="${vidUrl}" controls>${desc}</video>`;
-      let mdInput = document.getElementById('markdown-input');
-      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
-      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
-      convertMarkdown();
-      insertedTriggers.push({ id: trigId, type: "video", desc, text: selection.text, mode: selection.mode, url: vidUrl });
-    }
-
-    // إضافة iFrame (youtube)
-    async function triggerAddIframe(){
-      closeToolsModal();
-      let desc = await prompt("Enter some short description:", "");
-      if(desc===null) desc="";
-      let selection = await getSelectionInMarkdown();
-      if(!selection) return;
-      let iframeUrl = await prompt("Enter iFrame embed URL (YouTube, etc.):", "https://www.youtube.com/embed/VIDEOID");
-      if(!iframeUrl) return;
-      // Example code
-      let trigId = "TRG_"+Date.now();
-      let snippet = `
-<!--TRIGGER:${trigId}-->
-[Add iFrame Trigger]
-Desc: ${desc}
-SelectedText: ${selection.text}
-Mode: ${selection.mode}
-iframeURL: ${iframeUrl}
-<!--/TRIGGER-->
-`;
-      let code = `<iframe src="${iframeUrl}" style="width:560px; height:315px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>${desc}</iframe>`;
-      let mdInput = document.getElementById('markdown-input');
-      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
-      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
-      convertMarkdown();
-      insertedTriggers.push({ id: trigId, type: "iframe", desc, text: selection.text, mode: selection.mode, url: iframeUrl });
-    }
-
-    // إضافة معرف سؤال Q-ID (أكثر من واحد مفصول بمسافة)
-    async function triggerAddQuestionID(){
-      closeToolsModal();
-      let selection = await getSelectionInMarkdown();
-      if(!selection) return;
-      let qidsString = await prompt("Enter Q-IDs separated by space (e.g. 'tiss-phys-q1 tiss-phys-q2'):", "");
-      if(!qidsString) return;
-      let splitted = qidsString.trim().split(/\s+/);
-      let joined = splitted.join(", ");
-      let trigId = "TRG_"+Date.now();
-      let snippet = `
-<!--TRIGGER:${trigId}-->
-[Add QIDs Trigger]
-SelectedText: ${selection.text}
-Mode: ${selection.mode}
-QIDs: ${joined}
-<!--/TRIGGER-->
-`;
-      let code = `<span data-qids="${joined}">${selection.text || "Questions..."}</span>`;
-      let mdInput = document.getElementById('markdown-input');
-      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
-      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
-      convertMarkdown();
-      insertedTriggers.push({ id: trigId, type: "qids", text: selection.text, mode: selection.mode, qids: splitted });
-    }
-
-    // إضافة نص/Tag مخصص
-    async function triggerAddText(){
-      closeToolsModal();
-      let selection = await getSelectionInMarkdown();
-      if(!selection) return;
-      let customText = await prompt("Enter any custom snippet:", "<div>My Custom HTML</div>");
-      if(customText === null) return;
-      let trigId = "TRG_"+Date.now();
-      let snippet = `
-<!--TRIGGER:${trigId}-->
-[Add CustomText Trigger]
-SelectedText: ${selection.text}
-Mode: ${selection.mode}
-CustomText: ${customText}
-<!--/TRIGGER-->
-`;
-      let mdInput = document.getElementById('markdown-input');
-      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, customText);
-      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
-      convertMarkdown();
-      insertedTriggers.push({ id: trigId, type: "custom", text: selection.text, mode: selection.mode, content: customText });
-    }
-
-    // دالة إدراج النص في الماركداون قبل/بعد/داخل التحديد
-    function insertSnippet(md, findText, mode, snippet){
-      if(!findText) return md; 
-      let idx = md.indexOf(findText);
-      if(idx === -1){
-        // النص غير موجود
-        return md + "\n" + snippet;
+      let formHtml = "";
+      switch(type){
+        case 'link':
+          titleEl.textContent = "Add Link Trigger";
+          formHtml = `
+            <div class="mb-2">
+              <label>Description (optional):</label>
+              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+            </div>
+            <div class="mb-2">
+              <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
+              <small class="text-muted">Then choose position (before, after, inside) below</small>
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>Link URL:</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+          `;
+          break;
+        case 'video':
+          titleEl.textContent = "Add Video Trigger";
+          formHtml = `
+            <div class="mb-2">
+              <label>Description (optional):</label>
+              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+            </div>
+            <div class="mb-2">
+              <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
+              <small class="text-muted">Position: before/after/inside</small>
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>Video URL:</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+          `;
+          break;
+        case 'iframe':
+          titleEl.textContent = "Add iFrame Trigger";
+          formHtml = `
+            <div class="mb-2">
+              <label>Description (optional):</label>
+              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+            </div>
+            <div class="mb-2">
+              <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
+              <small class="text-muted">Position: before/after/inside</small>
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>iFrame embed URL (YouTube, etc.):</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://www.youtube.com/embed/VIDEO_ID">
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+          `;
+          break;
+        case 'qids':
+          titleEl.textContent = "Add Q-ID(s)";
+          formHtml = `
+            <div class="mb-2">
+              <label>Description (optional):</label>
+              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+            </div>
+            <div class="mb-2">
+              <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
+              <small class="text-muted">Position: before/after/inside</small>
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>Q-IDs (separated by space):</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="e.g. anat-lowe-q77 anat-lowe-q80">
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+          `;
+          break;
+        case 'text':
+          titleEl.textContent = "Add Custom Text/Tag";
+          formHtml = `
+            <div class="mb-2">
+              <label>Description (optional):</label>
+              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+            </div>
+            <div class="mb-2">
+              <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
+              <small class="text-muted">Position: before/after/inside</small>
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>Custom HTML / text:</label>
+              <textarea id="triggerLinkUrl" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+          `;
+          break;
       }
-      if(mode==="before"){
-        return md.slice(0,idx) + snippet + " " + findText + md.slice(idx+findText.length);
-      } else if(mode==="after"){
-        return md.slice(0,idx+findText.length) + " " + snippet + md.slice(idx+findText.length);
+      contentEl.innerHTML = formHtml;
+    }
+
+    function closeTriggerForm(){
+      document.getElementById('triggerFormOverlay').style.display = 'none';
+    }
+
+    function handleSelection(){
+      userSelectionRange = null;
+      beginSelectionProcess(rng=>{
+        if(!rng){
+          alert("No selection set.");
+        } else {
+          userSelectionRange = rng;
+          alert("Selection range set from " + rng.start + " to " + rng.end);
+        }
+      });
+    }
+
+    function applyTriggerInsertion(){
+      if(!userSelectionRange){
+        alert("No selection range set. Please select text range first.");
+        return;
+      }
+      let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
+      let pos = document.getElementById('triggerPosition').value;
+      let val = document.getElementById('triggerLinkUrl').value || "";
+      // اقرأ المحتوى
+      let ta = document.getElementById('markdown-input');
+      let textVal = ta.value;
+      let beforeText = textVal.slice(0, userSelectionRange.start);
+      let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
+      let afterText = textVal.slice(userSelectionRange.end);
+
+      let finalInsert = "";
+      switch(currentTriggerType){
+        case 'link':
+          // <a href="val" target="_blank">desc or selectedText</a>
+          // إن كان desc فارغ نستعمل selectedText
+          let linkInner = desc || selectedText || "LinkHere";
+          if(!val) val = "#";
+          finalInsert = `[${linkInner}](${val})`;
+          break;
+        case 'video':
+          // <video src="val" controls>desc</video>
+          let vidDesc = desc || "Video";
+          finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
+          break;
+        case 'iframe':
+          // <div><h4>desc</h4><iframe src="val" allowfullscreen /></div>
+          let ifDesc = desc || "iFrame desc";
+          finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
+          break;
+        case 'qids':
+          // multiple qids: anat-lowe-q77 anat-lowe-q80
+          // <span class="question-trigger" data-qids="anat-lowe-q77, anat-lowe-q80">desc or selectedText</span>
+          let qdesc = desc || selectedText || "Question Trigger";
+          let splitted = val.split(/\s+/).join(", "); 
+          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
+          break;
+        case 'text':
+          finalInsert = val; // يستخدم كما هو
+          break;
+      }
+
+      let replaced = "";
+      if(pos==="before"){
+        replaced = beforeText + finalInsert + selectedText + afterText;
+      } else if(pos==="after"){
+        replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         // inside
-        return md.slice(0,idx) + snippet + md.slice(idx+findText.length);
+        // نضعه داخل selectedText
+        // إن كانت selectedText فارغة → لا مشكلة
+        let mid = selectedText + finalInsert;
+        replaced = beforeText + mid + afterText;
       }
+
+      ta.value = replaced;
+      convertMarkdown();
+      userSelectionRange = null;
+      closeTriggerForm();
     }
 
     /****
@@ -1303,7 +1421,6 @@ CustomText: ${customText}
     function closeImageUploader(){
       document.getElementById('imageUploadOverlay').style.display = 'none';
     }
-    // إضافة رابط صورة مباشرة
     function insertImageLink(){
       let linkVal = document.getElementById('imageLinkInput').value.trim();
       if(!linkVal) return;
@@ -1312,7 +1429,6 @@ CustomText: ${customText}
       convertMarkdown();
       alert("تم إضافة رابط الصورة!");
     }
-    // رفع صور من الجهاز
     async function uploadLocalImages(){
       let files = document.getElementById('localImageFile').files;
       if(!files || files.length===0) return;
@@ -1358,7 +1474,6 @@ CustomText: ${customText}
       convertMarkdown();
       alert("تم إدراج الصورة في الماركداون!");
     }
-    // حذف الصورة من المستودع
     async function deleteImage(filePath, btnRef){
       let conf = await confirm("Are you sure you want to delete this image from GitHub?");
       if(!conf) return;
@@ -1372,109 +1487,6 @@ CustomText: ${customText}
       } else {
         alert("Failed to delete image: " + (j.error||''));
       }
-    }
-
-    /****
-     * نافذة لإدارة الـ triggers
-     ****/
-    function openManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'flex';
-      renderTriggersList();
-    }
-    function closeManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'none';
-    }
-    function renderTriggersList(){
-      let container = document.getElementById('triggersListContainer');
-      container.innerHTML = '';
-      // سنبحث في الـ markdown عن كل التعليقات التي تحتوي على <!--TRIGGER:ID--> ... <!--/TRIGGER-->
-      let mdText = document.getElementById('markdown-input').value;
-      let regex = /<!--TRIGGER:(.*?)-->([\s\S]*?)<!--\/TRIGGER-->/g;
-      let match;
-      let arr = [];
-      while((match = regex.exec(mdText)) !== null){
-        let trigID = match[1].trim();
-        let content = match[2].trim();
-        arr.push({id: trigID, raw: content});
-      }
-      // نعرضهم
-      arr.forEach((tr)=> {
-        let div = document.createElement('div');
-        div.className = "triggers-list-item";
-        div.innerHTML = `<strong>ID:</strong> ${tr.id}<br> <pre>${tr.raw}</pre>
-          <button class="btn btn-sm btn-warning" onclick="editTrigger('${tr.id}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="removeTrigger('${tr.id}')">Remove</button>
-          <button class="btn btn-sm btn-secondary" onclick="moveTriggerUp('${tr.id}')">Up</button>
-          <button class="btn btn-sm btn-secondary" onclick="moveTriggerDown('${tr.id}')">Down</button>
-        `;
-        container.appendChild(div);
-      });
-      if(arr.length===0){
-        container.innerHTML = "<p>No triggers found.</p>";
-      }
-    }
-    function editTrigger(trigID){
-      // ببساطة نطلب من المستخدم أن يعدل النص بالكامل
-      let mdText = document.getElementById('markdown-input').value;
-      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`);
-      let match = pattern.exec(mdText);
-      if(!match){
-        alert("Trigger not found in markdown!");
-        return;
-      }
-      let oldRaw = match[1].trim();
-      closeManageTriggersModal();
-      prompt("Edit trigger comment content:", oldRaw).then((val)=>{
-        if(val===null) return;
-        // نستبدل
-        let newContent = `<!--TRIGGER:${trigID}-->\n${val}\n<!--/TRIGGER-->`;
-        let newMd = mdText.replace(pattern, newContent);
-        document.getElementById('markdown-input').value = newMd;
-        convertMarkdown();
-        alert("Trigger updated!");
-      });
-    }
-    function removeTrigger(trigID){
-      let mdText = document.getElementById('markdown-input').value;
-      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`, 'g');
-      let newMd = mdText.replace(pattern, '');
-      document.getElementById('markdown-input').value = newMd;
-      convertMarkdown();
-      alert("Trigger removed!");
-      renderTriggersList();
-    }
-    function moveTriggerUp(trigID){
-      // We'll just re-order the triggers by "cut" and "paste" 
-      let mdText = document.getElementById('markdown-input').value;
-      let lines = mdText.split('\n');
-      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`);
-      let match = pattern.exec(mdText);
-      if(!match) return;
-      let block = `<!--TRIGGER:${trigID}-->${match[1]}<!--/TRIGGER-->`;
-      // حساس جداً - قد لا يكون مثالياً
-      let idx = mdText.indexOf(block);
-      if(idx<1) return;
-      // طبعاً أسلوب بدائي
-      let newMd = moveBlockUp(mdText, block);
-      document.getElementById('markdown-input').value = newMd;
-      convertMarkdown();
-      renderTriggersList();
-    }
-    function moveBlockUp(all, block){
-      let i = all.indexOf(block);
-      if(i<=0) return all;
-      // نبحث عن أقرب سطر قبل block
-      let lines = all.split('\n');
-      let j = lines.indexOf(block.trim());
-      // هذه الطرق بدائية - لكن لأجل الفكرة
-      // سنقوم بالإزالة والادراج في موضع-1
-      let splitted = all.split(block);
-      // ...
-      return all; // تكتفي بإبقائها كما هي لأجل الوقت
-    }
-    function moveTriggerDown(trigID){
-      // مشابهه
-      alert("Moving triggers up/down in text is not fully implemented. Sorry!");
     }
   </script>
 </body>
