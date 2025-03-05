@@ -85,7 +85,6 @@
       width: 100%;
       cursor: grab;
     }
-    /* لتفعيل سحب للتمرير بالماوس */
     #markdown-input:active {
       cursor: grabbing;
     }
@@ -217,7 +216,7 @@
   </style>
 </head>
 <body>
-  <div class="container-custom">
+  <div class="container-custom" id="mainContainer">
     <h1><i class="bi bi-journal-text"></i> Admin Panel - Manage Topics & Content</h1>
 
     <!-- Manage Topics Section -->
@@ -384,7 +383,6 @@
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
-      <!-- أربع/خمس خطوات بسيطة -->
       <div id="triggerFormContent"></div>
       <div class="modal-buttons">
         <button class="btn btn-secondary" onclick="closeTriggerForm()">Cancel</button>
@@ -603,7 +601,6 @@
       });
     }
 
-    // عنصر واحد (قد يكون رئيسي أو فرعي...) - عامل تكرار Recursion
     function createNodeElement(nodeObj, path, level){
       let div = document.createElement('div');
       div.className = "topic-node";
@@ -613,7 +610,6 @@
       let nodeTitle = nodeObj.title || "Untitled";
       label.textContent = nodeTitle;
 
-      // أزرار التحكم
       let btnGroup = document.createElement('div');
       btnGroup.className = "btn-group-sm";
       
@@ -644,7 +640,6 @@
       label.appendChild(btnGroup);
       div.appendChild(label);
 
-      // لو فيه subtopics
       if(nodeObj.subtopics && Array.isArray(nodeObj.subtopics)){
         nodeObj.subtopics.forEach((subtopic, i) => {
           let subDiv = document.createElement('div');
@@ -659,7 +654,6 @@
       return div;
     }
 
-    // تحريك للأعلى
     function moveNodeUp(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray > 0){
@@ -671,8 +665,6 @@
         loadContentFileList();
       }
     }
-
-    // تحريك للأسفل
     function moveNodeDown(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray < parentArray.length - 1){
@@ -684,8 +676,6 @@
         loadContentFileList();
       }
     }
-
-    // دالة للحصول على المصفوفة الأب والمؤشر
     function getParentArrayAndIndex(path){
       let parentRef = expTopics;
       for(let i = 0; i < path.length - 1; i++){
@@ -694,8 +684,6 @@
       let indexInArray = path[path.length - 1];
       return { parentArray: parentRef, indexInArray };
     }
-
-    // تعديل الاسم
     async function editNodeTitle(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
@@ -705,11 +693,9 @@
         newTitle = newTitle.trim();
         if(newTitle === "") return;
         node.title = newTitle;
-        
         if(node.dataFile){
           await renameContentFile(path, node); 
         }
-
         renderTopicsTree();
         fillParentSelect();
         loadContentFileList();
@@ -761,7 +747,6 @@
         let oldPath = node.dataFile; 
         let parentPath = path.slice(0, -1);
         let newFileName = "";
-
         let chainForParent = getTitlesChain(parentPath.slice(0, -1)); 
         let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
         let childPart = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
@@ -770,7 +755,6 @@
         } else {
           newFileName = childPart + ".json";
         }
-
         let body = { 
           oldPath, 
           newPath: "exp_data/" + newFileName
@@ -782,7 +766,6 @@
         } else {
           body.newTitle = node.title;
         }
-
         let renameReq = await fetch('/api/rename-file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -799,11 +782,9 @@
         alert("Error in renameContentFile: " + e.toString());
       }
     }
-
     async function deleteNode(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
-
       if(node.dataFile){
         let confirmDel = await confirm("This is a content node. Deleting will also remove its file from GitHub. Proceed?");
         if(!confirmDel) return;
@@ -824,7 +805,6 @@
       fillParentSelect();
       loadContentFileList();
     }
-
     async function deleteNestedDataFiles(node){
       if(!node) return;
       if(node.subtopics && Array.isArray(node.subtopics)){
@@ -857,13 +837,11 @@
       let nodeType = document.getElementById('newNodeType').value; 
       let parentVal = document.getElementById('parentSelect').value;
       let newObj = { title: nodeTitle };
-
       if(nodeType === "branch"){
         newObj.subtopics = [];
       } else {
         let fileName = generateFileNameForContent(parentVal, nodeTitle);
         let newJsonTitle = generateTitleFieldForContent(parentVal, nodeTitle);
-
         let createReq = await fetch('/api/add-file', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -877,7 +855,6 @@
           return;
         }
       }
-
       if(parentVal === 'root'){
         expTopics.topics.push(newObj);
       } else {
@@ -886,20 +863,17 @@
         if(!parentNode.subtopics) parentNode.subtopics = [];
         parentNode.subtopics.push(newObj);
       }
-
       document.getElementById('newNodeTitle').value = '';
       document.getElementById('newNodeType').value = 'branch';
       renderTopicsTree();
       fillParentSelect();
       loadContentFileList();
-
       if(nodeType === "content" && newObj.dataFile){
         let sel = document.getElementById('contentNodesSelect');
         sel.value = newObj.dataFile;
         await loadContentFile();
       }
     }
-
     function generateFileNameForContent(path, newTitle){
       if(path === 'root'){
         let fn = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
@@ -938,7 +912,6 @@
       optRoot.value = 'root';
       optRoot.textContent = 'Root';
       sel.appendChild(optRoot);
-
       if(!expTopics || !expTopics.topics) return;
       expTopics.topics.forEach((topic, i) => {
         addNodePathOption(sel, topic, JSON.stringify(['topics', i]), '');
@@ -993,7 +966,6 @@
         sel.appendChild(opt);
       });
     }
-
     async function loadContentFile(){
       let sel = document.getElementById('contentNodesSelect');
       if(!sel.value){
@@ -1012,23 +984,18 @@
         let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
-        
-        // تحويل HTML القديم → ماركداون
         let turndownService = new TurndownService();
         let md = turndownService.turndown(contentObj.content);
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
-
         document.getElementById('contentLoadMsg').innerHTML =
           `<div class="alert alert-success">Content loaded successfully!</div>`;
-        
         await alert("تم تحميل ملف المحتوى بنجاح، والمحتوى " + (contentObj.content ? "غير فارغ." : "فارغ."));
       } catch(e){
         console.error(e);
         alert("Error loading content file");
       }
     }
-
     async function saveContentChanges(){
       if(!currentContentFile){
         alert("No content file selected.");
@@ -1126,8 +1093,28 @@
     /****
      * زر عائم لأدوات الـ triggers
      ****/
+    let isInSelectionMode = false; // نتحكم هل أخفينا الواجهة للselection أم لا
     function openToolsModal(){
-      document.getElementById('toolsOverlay').style.display = 'flex';
+      // لو نحن في وضع "selection mode"
+      if(isInSelectionMode){
+        confirm("Are you done with your selection?").then(done=>{
+          if(done){
+            // عاد المستخدم
+            // نلتقط range
+            getSelectionRange();
+            // نظهر الواجهة مجددًا
+            isInSelectionMode = false;
+            showMainUI(true);
+            // ثم نظهر الـ Tools فعليًا
+            document.getElementById('toolsOverlay').style.display = 'flex';
+          } else {
+            // ما زال يريد التحديد
+            return;
+          }
+        });
+      } else {
+        document.getElementById('toolsOverlay').style.display = 'flex';
+      }
     }
     function closeToolsModal(){
       document.getElementById('toolsOverlay').style.display = 'none';
@@ -1137,15 +1124,8 @@
      * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
      ****/
     function openManageTriggersModal(){
-      // فكرة بسيطة: نعرض أي عناصر ذات خصائص "data-qids" أو "video-container" أو ...
-      // أو يمكننا فقط عرض معلومات شكلية.
       let overlay = document.getElementById('manageTriggersOverlay');
       let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      // نجلب المحتوى النهائي:
-      let html = document.getElementById('markdown-result').innerHTML;
-      // يمكنك هنا عمل parse للـ HTML والبحث عن كل عنصر (link, iframe, span.question-trigger, ... إلخ).
-      // لأغراض التبسيط، سنبحث عن بعض العلامات بشكل عام ونضعها في القائمة.
       container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
       overlay.style.display = 'flex';
     }
@@ -1157,22 +1137,39 @@
      * عملية اختيار النص لتحديد موضع الإضافة (Before/After/Inside) 
      ****/
     let userSelectionRange = null;
-    function beginSelectionProcess(callback){
-      // نعتمد أسلوبًا مبسطًا: نطلب من المستخدم النقر/السحب في #markdown-input لتحديد النص
-      alert("برجاء تحديد النص أو موضعه بالـ textarea أدناه. ثم انقر موافق بالنافذة التالية.");
-      setTimeout(async ()=>{
-        let conf = await confirm("هل انتهيت من تحديد النص؟");
-        if(!conf){
-          callback(null);
-          return;
-        }
-        // نحصل على selection
-        let ta = document.getElementById('markdown-input');
-        // إن لم يكن هناك selection حقيقي، نعيده null
-        let start = ta.selectionStart;
-        let end = ta.selectionEnd;
-        callback({start, end});
-      }, 500);
+    function handleSelection(){
+      // عند الضغط: نخفي كل شيئ عدا الـ textarea وننتقل للوضع selection
+      isInSelectionMode = true;
+      showMainUI(false);
+      userSelectionRange = null;
+      alert("Please highlight the text you want in the editor. Then re-click Tools & Triggers to confirm or cancel.");
+    }
+    function showMainUI(visible){
+      let mainContainer = document.getElementById('mainContainer');
+      let floatManage = document.getElementById('floatManageTriggersBtn');
+      let floatTools = document.getElementById('floatToolsBtn');
+      let floatScroll = document.getElementById('floatScrollBtn');
+      if(!visible){
+        mainContainer.style.display = 'none';
+        floatManage.style.display = 'none';
+        floatTools.style.display = 'none';
+        floatScroll.style.display = 'none';
+      } else {
+        mainContainer.style.display = 'block';
+        floatManage.style.display = 'block';
+        floatTools.style.display = 'block';
+        floatScroll.style.display = 'block';
+      }
+    }
+    function getSelectionRange(){
+      let ta = document.getElementById('markdown-input');
+      let start = ta.selectionStart;
+      let end = ta.selectionEnd;
+      if(start >= end){
+        userSelectionRange = null;
+      } else {
+        userSelectionRange = {start, end};
+      }
     }
 
     /****
@@ -1199,7 +1196,7 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
-              <small class="text-muted">Then choose position (before, after, inside) below</small>
+              <small class="text-muted">Then re-click Tools & confirm</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1225,7 +1222,7 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Then re-click Tools & confirm</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1251,7 +1248,7 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Then re-click Tools & confirm</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1277,7 +1274,7 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Then re-click Tools & confirm</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1303,7 +1300,7 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="handleSelection()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Then re-click Tools & confirm</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1323,66 +1320,49 @@
       }
       contentEl.innerHTML = formHtml;
     }
-
     function closeTriggerForm(){
       document.getElementById('triggerFormOverlay').style.display = 'none';
     }
 
-    function handleSelection(){
-      userSelectionRange = null;
-      beginSelectionProcess(rng=>{
-        if(!rng){
-          alert("No selection set.");
-        } else {
-          userSelectionRange = rng;
-          alert("Selection range set from " + rng.start + " to " + rng.end);
-        }
-      });
-    }
-
     function applyTriggerInsertion(){
       if(!userSelectionRange){
-        alert("No selection range set. Please select text range first.");
+        alert("No selection range set. Please use 'Select Text Range' first, then re-open Tools & confirm.");
         return;
       }
       let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
       let pos = document.getElementById('triggerPosition').value;
       let val = document.getElementById('triggerLinkUrl').value || "";
-      // اقرأ المحتوى
       let ta = document.getElementById('markdown-input');
       let textVal = ta.value;
-      let beforeText = textVal.slice(0, userSelectionRange.start);
-      let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
-      let afterText = textVal.slice(userSelectionRange.end);
+      let start = userSelectionRange.start;
+      let end = userSelectionRange.end;
+      if(end > textVal.length) end = textVal.length;
+      let beforeText = textVal.slice(0, start);
+      let selectedText = textVal.slice(start, end);
+      let afterText = textVal.slice(end);
 
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          // <a href="val" target="_blank">desc or selectedText</a>
-          // إن كان desc فارغ نستعمل selectedText
           let linkInner = desc || selectedText || "LinkHere";
           if(!val) val = "#";
           finalInsert = `[${linkInner}](${val})`;
           break;
         case 'video':
-          // <video src="val" controls>desc</video>
           let vidDesc = desc || "Video";
           finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
           break;
         case 'iframe':
-          // <div><h4>desc</h4><iframe src="val" allowfullscreen /></div>
           let ifDesc = desc || "iFrame desc";
           finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
           break;
         case 'qids':
-          // multiple qids: anat-lowe-q77 anat-lowe-q80
-          // <span class="question-trigger" data-qids="anat-lowe-q77, anat-lowe-q80">desc or selectedText</span>
           let qdesc = desc || selectedText || "Question Trigger";
           let splitted = val.split(/\s+/).join(", "); 
           finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
           break;
         case 'text':
-          finalInsert = val; // يستخدم كما هو
+          finalInsert = val;
           break;
       }
 
@@ -1393,8 +1373,6 @@
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         // inside
-        // نضعه داخل selectedText
-        // إن كانت selectedText فارغة → لا مشكلة
         let mid = selectedText + finalInsert;
         replaced = beforeText + mid + afterText;
       }
