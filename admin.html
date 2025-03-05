@@ -327,19 +327,18 @@
     let expTopics = null;  // Holds the loaded exp_topics.json object
     let topicsSha = null;  // SHA of exp_topics.json on GitHub
 
-    let currentContentFile = null;
-    let currentContentSha = null;
+    let currentContentFile = null; // dataFile path (e.g. exp_data/CNS_Anatomy.json)
+    let currentContentSha = null;  // SHA for that content file
     let originalContentHtml = '';
 
     /* ==================== Helper: get full path to a node ==================== */
     function getNodePathTitles(topics, path){
-      // path is e.g. ["topics", 0, "subtopics", 1, ...]
+      // e.g. path ["topics", 0, "subtopics", 1, ...]
       let arr = [];
       let ref = topics;
       for(let i=0; i<path.length; i++){
         let key = path[i];
         if(typeof key === 'number'){
-          // It's an index
           let node = ref[key];
           if(node && node.title) arr.push(node.title);
         }
@@ -347,9 +346,11 @@
       }
       return arr;
     }
+    // Convert "CNS", "Anatomy" => "CNS_Anatomy"
     function joinForFileName(titles){
       return titles.map(t => t.replace(/\s+/g, '_')).join('_');
     }
+    // Convert "CNS", "Anatomy" => "CNS - Anatomy"
     function joinForDisplay(titles){
       return titles.join(' - ');
     }
@@ -359,7 +360,7 @@
       try {
         let r = await fetch('/api/get-exp-topics');
         let data = await r.json();
-        if(!data.success) {
+        if(!data.success){
           alert("Error loading exp_topics.json: " + (data.error||''));
           return;
         }
@@ -367,7 +368,7 @@
         topicsSha = data.sha;
         renderTopicsTree();
         fillParentSelect();
-        loadContentFileList(); // refresh content nodes list
+        loadContentFileList();
       } catch(e){
         console.error(e);
         alert("Error loading exp_topics.json (check console).");
@@ -377,11 +378,11 @@
     /* ==================== 2) Save exp_topics.json ==================== */
     async function saveExpTopics(){
       if(!expTopics){
-        alert("No data loaded yet.");
+        alert("No topics loaded yet!");
         return;
       }
-      let confirmSave = await confirm("Are you sure you want to save changes to exp_topics.json?");
-      if(!confirmSave) return;
+      let c = await confirm("Are you sure you want to save changes to exp_topics.json?");
+      if(!c) return;
       try {
         let body = { content: expTopics, sha: topicsSha };
         let resp = await fetch('/api/save-exp-topics', {
@@ -397,7 +398,7 @@
         }
       } catch(e){
         console.error(e);
-        alert("Error saving topics");
+        alert("Error saving topics.");
       }
     }
 
@@ -406,6 +407,7 @@
       let container = document.getElementById('topicsTree');
       container.innerHTML = '';
       if(!expTopics || !expTopics.topics) return;
+
       expTopics.topics.forEach((topic, i) => {
         let nodeEl = createNodeElement(topic, ['topics', i]);
         container.appendChild(nodeEl);
@@ -417,32 +419,30 @@
 
       let label = document.createElement('div');
       label.className = 'node-title mb-2';
-      let nodeTitle = nodeObj.title || "Untitled";
-      label.textContent = nodeTitle;
+      label.textContent = nodeObj.title || "Untitled";
 
       // Buttons
       let btnGroup = document.createElement('div');
       btnGroup.className = 'btn-group-sm ms-2';
 
-      // Up
       let upBtn = document.createElement('button');
       upBtn.className = 'btn btn-secondary me-1';
       upBtn.textContent = '▲';
       upBtn.onclick = () => moveNodeUp(path);
       btnGroup.appendChild(upBtn);
-      // Down
+
       let downBtn = document.createElement('button');
       downBtn.className = 'btn btn-secondary me-1';
       downBtn.textContent = '▼';
       downBtn.onclick = () => moveNodeDown(path);
       btnGroup.appendChild(downBtn);
-      // Edit
+
       let editBtn = document.createElement('button');
       editBtn.className = 'btn btn-warning me-1';
       editBtn.textContent = 'Edit';
       editBtn.onclick = () => editNodeTitle(path);
       btnGroup.appendChild(editBtn);
-      // Delete
+
       let delBtn = document.createElement('button');
       delBtn.className = 'btn btn-danger me-1';
       delBtn.textContent = 'Delete';
@@ -452,13 +452,14 @@
       label.appendChild(btnGroup);
       div.appendChild(label);
 
+      // Subtopics
       if(nodeObj.subtopics && Array.isArray(nodeObj.subtopics)){
         nodeObj.subtopics.forEach((sub, idx) => {
           let subDiv = document.createElement('div');
           subDiv.className = 'sub-node';
           let newPath = [...path, 'subtopics', idx];
-          let subEl = createNodeElement(sub, newPath);
-          subDiv.appendChild(subEl);
+          let el = createNodeElement(sub, newPath);
+          subDiv.appendChild(el);
           div.appendChild(subDiv);
         });
       }
@@ -493,7 +494,7 @@
       }
     }
 
-    /* ==================== Rename node, also rename file if dataFile ==================== */
+    /* ==================== Rename node (also rename file if dataFile) ==================== */
     async function editNodeTitle(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
@@ -503,21 +504,20 @@
       newTitle = newTitle.trim();
       node.title = newTitle;
 
+      // if node has dataFile -> rename
       if(node.dataFile){
-        // rename file on GitHub
         let oldFilePath = node.dataFile;
-        let ancestors = getNodePathTitles(expTopics.topics, path); // last is newTitle
-        let newFileName = joinForFileName(ancestors) + '.json';
-        let newFilePath = 'exp_data/' + newFileName;
+        let ancestors = getNodePathTitles(expTopics.topics, path);
+        let newFileName = joinForFileName(ancestors)+'.json';
+        let newFilePath = 'exp_data/'+newFileName;
         let renameResp = await renameContentFileOnGitHub(oldFilePath, newFilePath, ancestors);
         if(renameResp.success){
           node.dataFile = newFilePath;
         } else {
           node.title = oldTitle; // revert
-          alert("Could not rename file: " + (renameResp.error||''));
+          alert("Could not rename file: "+(renameResp.error||''));
         }
       }
-
       renderTopicsTree();
       fillParentSelect();
       loadContentFileList();
@@ -528,10 +528,9 @@
         let getJ = await getResp.json();
         if(!getJ.success) return { success:false, error:getJ.error||'Cannot read old file' };
         let contentObj = getJ.content;
-        // update title
+        // update "title" inside
         contentObj.title = joinForDisplay(ancestorsArr);
 
-        // call /api/rename-file
         let payload = {
           fileName: newPath.replace('exp_data/',''),
           oldContentObj: contentObj,
@@ -544,25 +543,23 @@
           body: JSON.stringify(payload)
         });
         let renameJ = await renameReq.json();
-        return renameJ;
+        return renameJ; // {success:true} or {success:false,error:...}
       } catch(e){
         return { success:false, error:e.toString() };
       }
     }
 
-    /* ==================== Delete node (and file if dataFile) ==================== */
+    /* ==================== Delete node ==================== */
     async function deleteNode(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
       if(node.dataFile){
         let c = await confirm("This node has dataFile. Deleting will remove its file from GitHub. Proceed?");
         if(!c) return;
-        let delResp = await fetch('/api/delete-file?filePath='+encodeURIComponent(node.dataFile), {
-          method:'DELETE'
-        });
-        let delJ = await delResp.json();
-        if(!delJ.success){
-          alert("Could not delete file from GitHub: " + (delJ.error||''));
+        let del = await fetch('/api/delete-file?filePath='+encodeURIComponent(node.dataFile), {method:'DELETE'});
+        let jd = await del.json();
+        if(!jd.success){
+          alert("Could not delete file from GitHub: "+(jd.error||''));
           return;
         }
       } else {
@@ -586,7 +583,7 @@
       }
     }
 
-    /* ==================== Add Node (branch or content) ==================== */
+    /* ==================== Add Node ==================== */
     async function addNode(){
       if(!expTopics){
         alert("Load exp_topics.json first!");
@@ -598,7 +595,8 @@
         return;
       }
       let nodeType = document.getElementById('newNodeType').value; // "branch" or "content"
-      let parentVal = document.getElementById('parentSelect').value; // "root" or JSON path
+      let parentVal = document.getElementById('parentSelect').value; // "root" or JSON
+
       let newObj = { title: nodeTitle };
       if(nodeType==='branch') newObj.subtopics = [];
 
@@ -612,7 +610,7 @@
         parentNode.subtopics.push(newObj);
       }
 
-      // If content => create a file
+      // if content => create file
       if(nodeType==='content'){
         let path = (parentVal==='root') ? [] : JSON.parse(parentVal);
         let fullPathTitles = getNodePathTitles(expTopics.topics, path).concat([nodeTitle]);
@@ -626,12 +624,11 @@
         });
         let j = await resp.json();
         if(j.success){
-          newObj.dataFile = j.filePath; 
+          newObj.dataFile = j.filePath;
         } else {
-          alert("Could not create file: " + (j.error||''));
+          alert("Could not create file: "+(j.error||''));
         }
       }
-
       document.getElementById('newNodeTitle').value='';
       document.getElementById('newNodeType').value='branch';
       renderTopicsTree();
@@ -639,14 +636,14 @@
       loadContentFileList();
     }
 
-    /* ==================== Fill parent <select> for adding new nodes ==================== */
+    /* ==================== fillParentSelect ==================== */
     function fillParentSelect(){
       let sel = document.getElementById('parentSelect');
-      sel.innerHTML='';
-      let optRoot = document.createElement('option');
-      optRoot.value='root';
-      optRoot.textContent='Root';
-      sel.appendChild(optRoot);
+      sel.innerHTML = '';
+      let rootOpt = document.createElement('option');
+      rootOpt.value = 'root';
+      rootOpt.textContent = 'Root';
+      sel.appendChild(rootOpt);
 
       if(!expTopics || !expTopics.topics) return;
       expTopics.topics.forEach((topic, i) => {
@@ -661,21 +658,21 @@
 
       if(node.subtopics && Array.isArray(node.subtopics)){
         node.subtopics.forEach((sub, i) => {
-          addNodePathOption(sel, sub, [...path,'subtopics',i], prefix + node.title+" > ");
+          addNodePathOption(sel, sub, [...path, 'subtopics', i], prefix+node.title+" > ");
         });
       }
     }
 
-    /* ==================== Fill contentNodesSelect with all content nodes ==================== */
+    /* ==================== loadContentFileList ==================== */
     function loadContentFileList(){
       let sel = document.getElementById('contentNodesSelect');
-      sel.innerHTML = '<option value="">-- Select Content Node --</option>';
+      sel.innerHTML='<option value="">-- Select Content Node --</option>';
       if(!expTopics || !expTopics.topics) return;
-      let allContent = getAllContentNodes(expTopics.topics, []);
-      allContent.forEach(cn => {
+      let allContentNodes = getAllContentNodes(expTopics.topics, []);
+      allContentNodes.forEach(obj => {
         let opt = document.createElement('option');
-        opt.value = cn.dataFile;
-        opt.textContent = cn.fullDisplay;
+        opt.value = obj.dataFile;
+        opt.textContent = obj.fullDisplay;
         sel.appendChild(opt);
       });
     }
@@ -683,13 +680,13 @@
       let result=[];
       for(let i=0; i<nodes.length; i++){
         let n = nodes[i];
-        let currentPath = [...path, i];
+        let curPath = [...path, i];
         if(n.dataFile){
-          let fullTitles = getNodePathTitles(expTopics.topics, buildPathForGetNode(path,i));
-          let displayText = joinForDisplay(fullTitles);
+          let fullTitles = getNodePathTitles(expTopics.topics, buildPathForGetNode(path, i));
+          let disp = joinForDisplay(fullTitles);
           result.push({
             dataFile: n.dataFile,
-            fullDisplay: displayText
+            fullDisplay: disp
           });
         }
         if(n.subtopics && Array.isArray(n.subtopics)){
@@ -719,15 +716,17 @@
         let r = await fetch('/api/get-content-file?filePath='+encodeURIComponent(currentContentFile));
         let j = await r.json();
         if(!j.success){
-          document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-danger">Failed to load: ${j.error||''}</div>`;
+          document.getElementById('contentLoadMsg').innerHTML =
+            `<div class="alert alert-danger">Failed to load: ${j.error||''}</div>`;
           return;
         }
         currentContentSha = j.sha;
-        let contentObj = j.content;
-        if(!contentObj.content) contentObj.content = "";
-        originalContentHtml = contentObj.content;
-        document.getElementById('contentEditor').innerHTML = contentObj.content;
-        document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-success">Content loaded successfully!</div>`;
+        let obj = j.content;
+        if(!obj.content) obj.content = "";
+        originalContentHtml = obj.content;
+        document.getElementById('contentEditor').innerHTML = obj.content;
+        document.getElementById('contentLoadMsg').innerHTML =
+          `<div class="alert alert-success">Content loaded successfully!</div>`;
       } catch(e){
         console.error(e);
         alert("Error loading content file (check console).");
@@ -752,7 +751,7 @@
       try {
         let resp = await fetch('/api/save-content-file', {
           method:'POST',
-          headers:{'Content-Type':'application/json'},
+          headers:{ 'Content-Type':'application/json' },
           body: JSON.stringify(body)
         });
         let j = await resp.json();
@@ -765,7 +764,7 @@
         }
       } catch(e){
         console.error(e);
-        alert("Error saving content file");
+        alert("Error saving content file.");
       }
     }
 
