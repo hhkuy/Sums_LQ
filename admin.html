@@ -12,6 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <!-- مكتبة Marked.js لتحويل Markdown إلى HTML -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- مكتبة Turndown.js لتحويل HTML إلى Markdown عند التحميل -->
+  <script src="https://cdn.jsdelivr.net/npm/turndown/dist/turndown.js"></script>
   <style>
     body {
       background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
@@ -251,24 +253,9 @@
         <label for="markdown-input" class="form-label">Markdown Editor:</label>
         <textarea class="form-control" id="markdown-input" placeholder="Write or paste your markdown here..."></textarea>
 
-        <!-- أزرار التحكم في الماركداون -->
+        <!-- زر واحد لتحويل -->
         <div class="row g-2 mt-2">
-          <div class="col-md-3">
-            <button class="btn btn-secondary w-100 btn-custom" onclick="copyResultCode()">
-              <i class="bi bi-clipboard"></i> Copy Result Code
-            </button>
-          </div>
-          <div class="col-md-3">
-            <button class="btn btn-info w-100 btn-custom text-white" onclick="copyResultHtml()">
-              <i class="bi bi-files"></i> Copy Result HTML
-            </button>
-          </div>
-          <div class="col-md-3">
-            <button class="btn btn-danger w-100 btn-custom" onclick="deleteResult()">
-              <i class="bi bi-trash"></i> Clear Preview
-            </button>
-          </div>
-          <div class="col-md-3">
+          <div class="col-md-12">
             <button class="btn btn-primary w-100 btn-custom" onclick="convertMarkdown()">
               <i class="bi bi-arrow-left-right"></i> Convert
             </button>
@@ -280,7 +267,7 @@
 
         <hr>
 
-        <!-- زر حفظ -->
+        <!-- زر حفظ & زر طباعة -->
         <div class="row g-2">
           <div class="col-md-6">
             <button class="btn btn-info btn-custom" onclick="printResult()">Print / PDF</button>
@@ -700,7 +687,6 @@
         let newFileName = "";
 
         let chainForParent = getTitlesChain(parentPath.slice(0, -1)); 
-        // مثلاً نحول لسلسلة lowercase متصلة بـ underscore
         let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
         let childPart = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
         if(parentChain){
@@ -711,7 +697,7 @@
 
         let body = { 
           oldPath, 
-          newPath: "exp_data/" + newFileName // الفعلي في المستودع
+          newPath: "exp_data/" + newFileName
         };
         let fullChain = getTitlesChain(path);
         if(fullChain.length > 1){
@@ -811,7 +797,6 @@
         });
         let createRes = await createReq.json();
         if(createRes.success){
-          // احفظ فقط الاسم المختصر
           newObj.dataFile = fileName; 
         } else {
           alert("Could not create file for content. " + (createRes.error||''));
@@ -956,9 +941,12 @@
         let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
-        // نفترض أنه HTML مُخزن. سنضعه ضمن الماركداون النصي (إن رغبت بتحريره) → أو نتركه كما هو:
-        // هنا ببساطة سنعرض الـ HTML في المعاينة، ونترك الـ Markdown فارغ (أو يمكننا وضع contentObj.content كنص ماركداون لو لدينا عاكس)
-        document.getElementById('markdown-input').value = ""; 
+        
+        // عند إعادة التحميل: لو لدينا HTML سابق، نحوّله إلى ماركداون لكي يُعرض في المحرر
+        let turndownService = new TurndownService();
+        let md = turndownService.turndown(contentObj.content);
+        document.getElementById('markdown-input').value = md;
+        // نُحدِّث العرض بالـ HTML المحفوظ (للإطلاع) 
         document.getElementById('markdown-result').innerHTML = contentObj.content;
 
         document.getElementById('contentLoadMsg').innerHTML =
@@ -1027,30 +1015,6 @@
       currentDirection = detectTextDirection(markdownText);
       document.getElementById('markdown-result').style.direction = currentDirection;
     }
-    function copyResultCode() {
-      const resultDiv = document.getElementById('markdown-result');
-      const codeText = resultDiv.outerHTML;
-      const tempTextarea = document.createElement('textarea');
-      tempTextarea.value = codeText;
-      document.body.appendChild(tempTextarea);
-      tempTextarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempTextarea);
-      alert("تم نسخ كود النتيجة بنجاح!");
-    }
-    function copyResultHtml() {
-      const resultDiv = document.getElementById('markdown-result');
-      const tempTextarea = document.createElement('textarea');
-      tempTextarea.value = resultDiv.innerHTML;
-      document.body.appendChild(tempTextarea);
-      tempTextarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempTextarea);
-      alert("تم نسخ النتيجة (HTML) بنجاح!");
-    }
-    function deleteResult(){
-      document.getElementById('markdown-result').innerHTML = "";
-    }
     function printResult() {
       const resultDivContent = document.getElementById('markdown-result').innerHTML;
       const printWindow = window.open('about:blank', '_blank', 'width=800,height=600');
@@ -1103,12 +1067,10 @@
     // إضافة رابط
     async function triggerAddLink(){
       closeToolsModal();
-      // نسأل عن النص الذي سيظهر، والرابط
       let textVal = await prompt("Enter link text:", "");
       if(textVal === null) return;
       let linkVal = await prompt("Enter link URL:", "https://");
       if(linkVal === null) return;
-      // سنضيف في الماركداون [textVal](linkVal)
       let mdInput = document.getElementById('markdown-input');
       mdInput.value += `\n[${textVal}](${linkVal})\n`;
       convertMarkdown();
@@ -1120,8 +1082,6 @@
       if(descText === null) return;
       let vidUrl = await prompt("Enter video URL:", "https://");
       if(vidUrl === null) return;
-      // مثلاً Markdown: 
-      // <video src="..." controls>descText</video>
       let mdInput = document.getElementById('markdown-input');
       mdInput.value += `\n<video src="${vidUrl}" controls>${descText}</video>\n`;
       convertMarkdown();
@@ -1142,7 +1102,6 @@
       closeToolsModal();
       let qidVal = await prompt("Enter Q-ID (e.g. 'cardio-q12'):", "");
       if(qidVal === null) return;
-      // سنضيف مثلاً span بعلامة data-qid
       let mdInput = document.getElementById('markdown-input');
       mdInput.value += `\n<span data-qid="${qidVal}">Question Placeholder</span>\n`;
       convertMarkdown();
@@ -1163,7 +1122,6 @@
     function openImageUploader(){
       closeToolsModal();
       document.getElementById('imageUploadOverlay').style.display = 'flex';
-      // نظف بعض الحقول
       document.getElementById('localImageFile').value = "";
       document.getElementById('uploadProgress').style.display = 'none';
       document.getElementById('uploadProgressBar').style.width = '0%';
@@ -1191,7 +1149,6 @@
       document.getElementById('uploadProgress').style.display = 'block';
       for(let i=0; i<files.length; i++){
         let f = files[i];
-        // نقرأه كـ base64
         let reader = new FileReader();
         reader.onload = async function(e){
           let base64Data = e.target.result.split(',')[1]; 
@@ -1199,7 +1156,6 @@
             name: f.name,
             base64: base64Data
           };
-          // لا يوجد رفع تدرجي حقيقي هنا؛ سنضع نسبة تقديرية
           document.getElementById('uploadProgressBar').style.width = '50%';
           document.getElementById('uploadProgressBar').textContent = 'Uploading... (50%)';
           let r = await fetch('/api/upload-image', {
@@ -1209,10 +1165,8 @@
           });
           let j = await r.json();
           if(j.success){
-            // 100%
             document.getElementById('uploadProgressBar').style.width = '100%';
             document.getElementById('uploadProgressBar').textContent = '100%';
-            // أضف الرابط إلى القائمة
             let li = document.createElement('li');
             li.innerHTML = `Uploaded: <a href="${j.url}" target="_blank">${j.url}</a> 
               <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${j.filePath}', this)">Delete</button>
@@ -1243,7 +1197,6 @@
       let j = await r.json();
       if(j.success){
         alert("Image deleted!");
-        // احذف العنصر من القائمة
         btnRef.parentElement.remove();
       } else {
         alert("Failed to delete image: " + (j.error||''));
