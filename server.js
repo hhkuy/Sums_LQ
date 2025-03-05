@@ -342,12 +342,12 @@ app.post('/api/rename-file', async (req, res) => {
       return res.json({ success:false, error:t });
     }
     const getJ = await respGet.json();
-    const oldDecoded = Buffer.from(getJ.content, 'base64').toString('utf8');
+    const oldContent = Buffer.from(getJ.content, 'base64').toString('utf8');
     let parsedOld;
     try {
-      parsedOld = JSON.parse(oldDecoded);
+      parsedOld = JSON.parse(oldContent);
     } catch(e){
-      parsedOld = { content: oldDecoded };
+      parsedOld = { content: oldContent };
     }
     if(newTitle){
       parsedOld.title = newTitle;
