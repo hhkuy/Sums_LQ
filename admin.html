@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <!-- مكتبة Marked.js لتحويل Markdown إلى HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body {
       background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
@@ -72,13 +74,23 @@
       border-left: 2px dashed #ccc;
       padding-left: 10px;
     }
-    .content-editor {
-      min-height: 200px;
-      border: 1px solid #ccc;
-      padding: 10px;
-      overflow-y: auto;
+    /* محرر الماركداون + عرض النتيجة */
+    #markdown-input {
+      border-radius: 15px;
+      overflow: hidden;
+      resize: none;
+      height: 300px;
+      width: 100%;
     }
-    /* Floating Buttons */
+    #markdown-result {
+      margin-top: 20px;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      border: 1px solid #ddd;
+      min-height: 200px;
+    }
+    /* الأزرار العائمة */
     #floatScrollBtn {
       position: fixed;
       width: 50px;
@@ -100,8 +112,30 @@
     #floatScrollBtn:hover {
       opacity: 0.8;
     }
-    /* أزلنا الزر العائم الذي يحتوي على علامة الاستفهام */
-    /* Modals */
+
+    /* زر الأدوات العائم (للـ triggers وغيرها) */
+    #floatToolsBtn {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 999;
+      top: 50%;
+      right: 90px;
+      transform: translateY(-50%);
+    }
+    #floatToolsBtn:hover {
+      opacity: 0.8;
+    }
+    /* النوافذ المنبثقة للأدوات */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -130,17 +164,19 @@
       gap: 10px;
       margin-top: 10px;
     }
-    .selected-text-tools {
-      border: 1px solid #dee2e6;
-      border-radius: 10px;
-      padding: 10px;
+    /* متفرقات */
+    .upload-progress {
       margin-top: 10px;
       display: none;
-      background-color: #f8f9fa;
     }
-    .selected-text-tools .btn {
-      margin-right: 5px;
+    .uploaded-images-list {
+      margin-top: 10px;
+    }
+    .uploaded-images-list li {
       margin-bottom: 5px;
+    }
+    .alert-success {
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -211,49 +247,47 @@
 
         <hr>
 
-        <!-- محرر النصوص -->
-        <div class="mb-2">
-          <label for="contentEditor" class="form-label">Content Editor</label>
-          <div id="contentEditor" class="content-editor" contenteditable="true"></div>
+        <!-- محرر الماركداون -->
+        <label for="markdown-input" class="form-label">Markdown Editor:</label>
+        <textarea class="form-control" id="markdown-input" placeholder="Write or paste your markdown here..."></textarea>
+
+        <!-- أزرار التحكم في الماركداون -->
+        <div class="row g-2 mt-2">
+          <div class="col-md-3">
+            <button class="btn btn-secondary w-100 btn-custom" onclick="copyResultCode()">
+              <i class="bi bi-clipboard"></i> Copy Result Code
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-info w-100 btn-custom text-white" onclick="copyResultHtml()">
+              <i class="bi bi-files"></i> Copy Result HTML
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-danger w-100 btn-custom" onclick="deleteResult()">
+              <i class="bi bi-trash"></i> Clear Preview
+            </button>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-primary w-100 btn-custom" onclick="convertMarkdown()">
+              <i class="bi bi-arrow-left-right"></i> Convert
+            </button>
+          </div>
         </div>
 
-        <!-- أدوات النص المحدد -->
-        <div id="selectedTextTools" class="selected-text-tools">
-          <p><strong>Tools for selected text:</strong></p>
-          <button class="btn btn-sm btn-outline-secondary" onclick="copySelectedText()">Copy</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="pasteAtCursor()">Paste</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="selectAllContent()">Select All</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="makeBold()">Bold</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="makeItalic()">Italic</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="addHeading()">Make Heading</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertBefore()">Insert Before</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertAfter()">Insert After</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertInMiddle()">Insert In Middle</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="removeTag()">Remove Tag</button>
-          <hr>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertImage()">Insert Image</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertVideo()">Insert Video Tag</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertIframe()">Insert iFrame</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertLink()">Insert Link</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertText()">Insert Text</button>
-        </div>
+        <!-- منطقة عرض النتيجة -->
+        <div id="markdown-result" style="direction: ltr; margin-top:20px;"></div>
 
         <hr>
 
-        <!-- زر عرض معاينة + حفظ -->
+        <!-- زر حفظ -->
         <div class="row g-2">
           <div class="col-md-6">
-            <button class="btn btn-info btn-custom" onclick="previewContent()">Preview</button>
+            <button class="btn btn-info btn-custom" onclick="printResult()">Print / PDF</button>
           </div>
           <div class="col-md-6">
             <button class="btn btn-success btn-custom" onclick="saveContentChanges()">Save Content</button>
           </div>
-        </div>
-
-        <!-- عرض المعاينة -->
-        <div id="previewArea" class="mt-3" style="border:1px solid #ddd; padding:10px; display:none;">
-          <h5>Preview:</h5>
-          <div id="previewContent"></div>
         </div>
       </div>
     </div>
@@ -261,6 +295,8 @@
 
   <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
+  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
+  <button id="floatToolsBtn" onclick="openToolsModal()">⚙</button>
 
   <!-- نظام النوافذ المنبثقة (modal) -->
   <div class="modal-overlay" id="alertOverlay">
@@ -287,6 +323,57 @@
       <div class="modal-buttons">
         <button class="btn btn-primary" id="promptOkBtn">OK</button>
         <button class="btn btn-secondary" id="promptCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة خاصة بـ Tools -->
+  <div class="modal-overlay" id="toolsOverlay">
+    <div class="modal-box" id="toolsModalBox">
+      <h3>Tools & Triggers</h3>
+      <!-- هنا الأزرار المختلفة -->
+      <div class="d-grid gap-2">
+        <button class="btn btn-outline-secondary" onclick="triggerAddLink()">Add Link</button>
+        <button class="btn btn-outline-secondary" onclick="triggerAddVideo()">Add Video</button>
+        <button class="btn btn-outline-secondary" onclick="triggerAddIframe()">Add iFrame</button>
+        <button class="btn btn-outline-secondary" onclick="triggerAddQuestionID()">Add Q-ID (for questions)</button>
+        <button class="btn btn-outline-secondary" onclick="triggerAddText()">Add Custom Text/Tag</button>
+        <button class="btn btn-outline-secondary" onclick="openImageUploader()">Upload Image(s)</button>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeToolsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة لرفع الصور -->
+  <div class="modal-overlay" id="imageUploadOverlay">
+    <div class="modal-box" style="text-align: left;">
+      <h3>Upload or Insert Image</h3>
+      <div>
+        <!-- اختيار صورة من الجهاز -->
+        <label class="form-label">Upload from device:</label>
+        <input type="file" id="localImageFile" class="form-control" multiple>
+        <button class="btn btn-success w-100 mt-2" onclick="uploadLocalImages()">Upload Selected</button>
+        <div class="upload-progress" id="uploadProgress">
+          <div class="progress mt-2">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" id="uploadProgressBar">0%</div>
+          </div>
+        </div>
+        <hr>
+        <!-- أو إدخال رابط صورة مباشر -->
+        <label class="form-label">Or use image link:</label>
+        <input type="text" id="imageLinkInput" class="form-control" placeholder="https://...">
+        <button class="btn btn-primary w-100 mt-2" onclick="insertImageLink()">Insert Link</button>
+      </div>
+      <hr>
+      <!-- قائمة الصور المرفوعة مع زر الحذف -->
+      <div>
+        <h5>Uploaded Images:</h5>
+        <ul class="uploaded-images-list" id="uploadedImagesList"></ul>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeImageUploader()">Close</button>
       </div>
     </div>
   </div>
@@ -534,23 +621,12 @@
 
     // دالة للحصول على المصفوفة الأب والمؤشر
     function getParentArrayAndIndex(path){
-      // path مثال: ['topics', 0, 'subtopics', 2]
-      // نسير في expTopics حتى نصل إلى آخر مستوى قبل العنصر المنشود
       let parentRef = expTopics;
       for(let i = 0; i < path.length - 1; i++){
         parentRef = parentRef[path[i]];
       }
       let indexInArray = path[path.length - 1];
       return { parentArray: parentRef, indexInArray };
-    }
-
-    // دالة لاسترجاع الكائن نفسه من خلال المسار
-    function getNodeObject(path){
-      let ref = expTopics;
-      for(let i = 0; i < path.length; i++){
-        ref = ref[path[i]];
-      }
-      return ref;
     }
 
     // تعديل الاسم
@@ -577,20 +653,15 @@
 
     // دالة تعيد سلسلة العناوين من الجذر حتى العقدة الأم
     function getTitlesChain(path){
-      // سيعيد مصفوفة بالعناوين بالترتيب
-      // نريد السلسلة باستثناء العقدة الحالية إذا كان باستدعاء قبل الإنشاء
-      // لكن هنا سنستعملها مرارًا حسب الحاجة
       let chain = [];
       function recurse(nodeList, currentPath){
         for(let i=0; i<nodeList.length; i++){
           let nodeObj = nodeList[i];
           let p = [...currentPath, i];
-          // نقوم بالتحقق إن كان هذا هو المسار المطلوب
           if(JSON.stringify(p) === JSON.stringify(path)){
             chain.push(nodeObj.title);
             return true;
           }
-          // أو نستمر في البحث في subtopics
           if(nodeObj.subtopics && nodeObj.subtopics.length>0){
             let subPath = [...currentPath, i, 'subtopics'];
             if(recurse(nodeObj.subtopics, subPath)) {
@@ -601,7 +672,6 @@
         }
         return false;
       }
-      // نبدأ من expTopics.topics
       function outer(){
         for(let i=0; i<expTopics.topics.length; i++){
           let nodeObj = expTopics.topics[i];
@@ -625,41 +695,26 @@
     // إعادة تسمية الملف في GitHub وتحديث الـ title في محتواه
     async function renameContentFile(path, node){
       try {
-        let oldPath = node.dataFile;  // الاسم القديم للملف
-        let parentPath = path.slice(0, -1); // مسار الأب
-        let parentNode = null;
+        let oldPath = node.dataFile;  // الاسم المختصر بدون exp_data/
+        let parentPath = path.slice(0, -1);
         let newFileName = "";
-        // لو كان جذرًا
-        if(parentPath.length === 0 || (parentPath.length === 1 && parentPath[0] === 'topics')){
-          // يعني مفيش أب مباشرة (على مستوى الجذر)
-          newFileName = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase();
-        } else {
-          // إحضار السلسلة الكاملة (باستثناء العقدة نفسها)
-          let nodeIndex = path[path.length - 1];
-          // نجلب مسار العقدة الأم
-          let parentOnlyPath = path.slice(0, -2); // نتراجع خطوة للخلف حتى نتجنب indexInArray
-          // سنجمع سلسلة العناوين للعقدة الأم
-          let chainForParent = getTitlesChain(parentOnlyPath);
-          // نجعلها كلها UpperCase مع underscore
-          let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase()).join('_');
-          if(parentChain) {
-            newFileName = parentChain + "_" + node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase();
-          } else {
-            // احتياط
-            newFileName = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase();
-          }
-        }
-        newFileName += ".json";
-        let newPath = "exp_data/" + newFileName;
 
-        // استدعاء API
-        let body = { oldPath, newPath };
-        // نريد أيضًا تعديل الـ title في محتوى الملف ليصبح (سلسلة الأب + " - " + title الحالي)
-        // مثلاً: CNS - Anatomy
-        // هنا نجلب سلسلة المسار الكامل للعقدة الحالية:
+        let chainForParent = getTitlesChain(parentPath.slice(0, -1)); 
+        // مثلاً نحول لسلسلة lowercase متصلة بـ underscore
+        let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
+        let childPart = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
+        if(parentChain){
+          newFileName = parentChain + "_" + childPart + ".json";
+        } else {
+          newFileName = childPart + ".json";
+        }
+
+        let body = { 
+          oldPath, 
+          newPath: "exp_data/" + newFileName // الفعلي في المستودع
+        };
         let fullChain = getTitlesChain(path);
         if(fullChain.length > 1){
-          // نجمعها بصيغة "A - B - C..."
           let newTitleStr = fullChain.join(" - ");
           body.newTitle = newTitleStr;
         } else {
@@ -676,8 +731,7 @@
           await alert("Could not rename file: " + (renameRes.error || ''));
           return;
         }
-        // عند النجاح
-        node.dataFile = newPath; // نحدّث المسار في العقدة
+        node.dataFile = newFileName;
       } catch(e){
         console.error(e);
         alert("Error in renameContentFile: " + e.toString());
@@ -692,8 +746,7 @@
       if(node.dataFile){
         let confirmDel = await confirm("This is a content node. Deleting will also remove its file from GitHub. Proceed?");
         if(!confirmDel) return;
-        // استدعاء API لحذف الملف
-        await fetch(`/api/delete-file?filePath=${encodeURIComponent(node.dataFile)}`, {
+        await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+node.dataFile)}`, {
           method: 'DELETE'
         }).then(r => r.json()).then(resp => {
           if(!resp.success){
@@ -703,10 +756,8 @@
       } else {
         let confirmDel = await confirm("Delete this branch (and all sub-branches)?");
         if(!confirmDel) return;
-        // إذا كان يحوي تفرعات فرعية فيها dataFile، يجب حذفها أيضًا...
         await deleteNestedDataFiles(node);
       }
-
       parentArray.splice(indexInArray, 1);
       renderTopicsTree();
       fillParentSelect();
@@ -718,8 +769,7 @@
       if(node.subtopics && Array.isArray(node.subtopics)){
         for(let st of node.subtopics){
           if(st.dataFile){
-            // حذف الملف
-            await fetch(`/api/delete-file?filePath=${encodeURIComponent(st.dataFile)}`, { method: 'DELETE' })
+            await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+st.dataFile)}`, { method: 'DELETE' })
               .then(r=>r.json()).then(resp=>{
                 if(!resp.success){
                   console.warn("Could not delete file from GitHub (nested):", resp.error);
@@ -729,46 +779,6 @@
           if(st.subtopics){
             await deleteNestedDataFiles(st);
           }
-        }
-      }
-    }
-
-    // توليد اسم للملف (وفق المطلوب: اسم الأب مع اسم العقدة)
-    function generateFileNameForContent(path, newTitle){
-      // نبني سلسلة للأب ثم نعطي اسم العقدة
-      // لو كان على مستوى الجذر فقط
-      if(path === 'root'){
-        // الاسم = newTitle فقط
-        let fn = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase();
-        return fn + ".json";
-      } else {
-        // path ممثل في JSON.parse(parentVal)
-        // نجد كائن الأب
-        let realPath = JSON.parse(path);
-        let chainTitles = getTitlesChain(realPath); // عناوين من الجذر للعقدة الأب
-        let parentChain = chainTitles.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase()).join('_');
-        let childPart = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toUpperCase();
-        let finalName = "";
-        if(parentChain){
-          finalName = parentChain + "_" + childPart + ".json";
-        } else {
-          finalName = childPart + ".json";
-        }
-        return finalName;
-      }
-    }
-
-    // توليد الـ title داخل الملف (مثلاً "CNS - Anatomy")
-    function generateTitleFieldForContent(path, newTitle){
-      if(path === 'root'){
-        return newTitle; 
-      } else {
-        let realPath = JSON.parse(path);
-        let chainTitles = getTitlesChain(realPath); 
-        if(chainTitles.length > 0){
-          return chainTitles.join(" - ") + " - " + newTitle;
-        } else {
-          return newTitle;
         }
       }
     }
@@ -784,20 +794,16 @@
         alert("Please enter a title.");
         return;
       }
-      let nodeType = document.getElementById('newNodeType').value; // branch or content
-      let parentVal = document.getElementById('parentSelect').value; 
-      // قد يكون 'root' أو سلسلة path
+      let nodeType = document.getElementById('newNodeType').value; 
+      let parentVal = document.getElementById('parentSelect').value;
       let newObj = { title: nodeTitle };
 
       if(nodeType === "branch"){
         newObj.subtopics = [];
       } else {
-        // محتوى: ننشئ ملفًا له
         let fileName = generateFileNameForContent(parentVal, nodeTitle);
-        // نرسل أيضًا الـ title المفصل
         let newJsonTitle = generateTitleFieldForContent(parentVal, nodeTitle);
 
-        // استدعاء API لإنشاء ملف
         let createReq = await fetch('/api/add-file', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -805,7 +811,8 @@
         });
         let createRes = await createReq.json();
         if(createRes.success){
-          newObj.dataFile = createRes.filePath;  // "exp_data/..."
+          // احفظ فقط الاسم المختصر
+          newObj.dataFile = fileName; 
         } else {
           alert("Could not create file for content. " + (createRes.error||''));
           return;
@@ -827,16 +834,47 @@
       fillParentSelect();
       loadContentFileList();
 
-      // لو المحتوى جديد, اجعله مختارًا تلقائيًا ليُعرض مباشرة
       if(nodeType === "content" && newObj.dataFile){
         let sel = document.getElementById('contentNodesSelect');
         sel.value = newObj.dataFile;
-        // ثم نطلب تحميله
         await loadContentFile();
       }
     }
 
-    // تعبئة القائمة المنسدلة لاختيار الأب
+    // توليد اسم للملف (lowercase)
+    function generateFileNameForContent(path, newTitle){
+      if(path === 'root'){
+        let fn = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
+        return fn + ".json";
+      } else {
+        let realPath = JSON.parse(path);
+        let chainTitles = getTitlesChain(realPath);
+        let parentChain = chainTitles.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
+        let childPart = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
+        let finalName = "";
+        if(parentChain){
+          finalName = parentChain + "_" + childPart + ".json";
+        } else {
+          finalName = childPart + ".json";
+        }
+        return finalName;
+      }
+    }
+    // توليد الـ title داخل الملف
+    function generateTitleFieldForContent(path, newTitle){
+      if(path === 'root'){
+        return newTitle; 
+      } else {
+        let realPath = JSON.parse(path);
+        let chainTitles = getTitlesChain(realPath); 
+        if(chainTitles.length > 0){
+          return chainTitles.join(" - ") + " - " + newTitle;
+        } else {
+          return newTitle;
+        }
+      }
+    }
+
     function fillParentSelect(){
       let sel = document.getElementById('parentSelect');
       sel.innerHTML = '';
@@ -855,7 +893,6 @@
       opt.value = path;
       opt.textContent = prefix + node.title;
       sel.appendChild(opt);
-
       if(node.subtopics && Array.isArray(node.subtopics)){
         node.subtopics.forEach((sub, i) => {
           let newPath = JSON.stringify([...JSON.parse(path), 'subtopics', i]);
@@ -871,14 +908,12 @@
     let currentContentSha = null;
     let originalContentHtml = '';
 
-    // نجمع كل العقد التي لها dataFile، مع إظهار المسار الكامل
     function collectContentNodes(nodes, prefix){
       let result = [];
       for(let i=0; i<nodes.length; i++){
         let n = nodes[i];
         let currentPrefix = prefix ? (prefix + " > " + n.title) : n.title;
         if(n.dataFile){
-          // حفظ الكائن
           result.push({
             file: n.dataFile,
             fullPath: currentPrefix
@@ -903,7 +938,6 @@
       });
     }
 
-    // تحميل ملف المحتوى
     async function loadContentFile(){
       let sel = document.getElementById('contentNodesSelect');
       if(!sel.value){
@@ -922,12 +956,14 @@
         let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
-        document.getElementById('contentEditor').innerHTML = contentObj.content;
+        // نفترض أنه HTML مُخزن. سنضعه ضمن الماركداون النصي (إن رغبت بتحريره) → أو نتركه كما هو:
+        // هنا ببساطة سنعرض الـ HTML في المعاينة، ونترك الـ Markdown فارغ (أو يمكننا وضع contentObj.content كنص ماركداون لو لدينا عاكس)
+        document.getElementById('markdown-input').value = ""; 
+        document.getElementById('markdown-result').innerHTML = contentObj.content;
 
         document.getElementById('contentLoadMsg').innerHTML =
           `<div class="alert alert-success">Content loaded successfully!</div>`;
         
-        // رسالة منبثقة لتأكيد التحميل
         await alert("تم تحميل ملف المحتوى بنجاح، والمحتوى " + (contentObj.content ? "غير فارغ." : "فارغ."));
       } catch(e){
         console.error(e);
@@ -942,12 +978,12 @@
       }
       let confirmSave = await confirm("Are you sure you want to save current content?");
       if(!confirmSave) return;
-      let contentEditor = document.getElementById('contentEditor');
-      let updatedHtml = contentEditor.innerHTML;
+      // نأخذ الـ HTML النهائي من منطقة العرض
+      let finalHtml = document.getElementById('markdown-result').innerHTML;
       let payload = {
         filePath: currentContentFile,
         sha: currentContentSha,
-        newContent: updatedHtml
+        newContent: finalHtml
       };
       try {
         let r = await fetch('/api/save-content-file', {
@@ -958,7 +994,7 @@
         let j = await r.json();
         if(j.success){
           alert("Content saved!");
-          originalContentHtml = updatedHtml;
+          originalContentHtml = finalHtml;
           currentContentSha = j.newSha; 
         } else {
           alert("Save failed: " + (j.error || ''));
@@ -970,145 +1006,248 @@
     }
 
     /****
-     *          أدوات التحديد في المحرر
+     *   محرر الماركداون
      ****/
-    let selectedRange = null;
-    document.getElementById('contentEditor').addEventListener('mouseup', () => {
-      let sel = window.getSelection();
-      if(sel.rangeCount > 0){
-        selectedRange = sel.getRangeAt(0);
-        let txt = sel.toString();
-        let tools = document.getElementById('selectedTextTools');
-        if(txt.length > 0){
-          tools.style.display = 'block';
-        } else {
-          tools.style.display = 'none';
+    let currentDirection = 'ltr';
+    function detectTextDirection(text) {
+      let arabicCount = 0, totalCount = 0;
+      for (let char of text) {
+        if (!char.match(/\s/)) {
+          totalCount++;
+          if (char.match(/[\u0600-\u06FF]/)) arabicCount++;
         }
       }
-    });
-
-    function copySelectedText(){
-      if(!selectedRange) return;
-      let selText = selectedRange.toString();
-      navigator.clipboard.writeText(selText);
+      if (totalCount === 0) return 'rtl';
+      return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
     }
-    function pasteAtCursor(){
-      navigator.clipboard.readText().then(clipText => {
-        if(selectedRange){
-          selectedRange.deleteContents();
-          let node = document.createTextNode(clipText);
-          selectedRange.insertNode(node);
+    function convertMarkdown() {
+      const markdownText = document.getElementById('markdown-input').value;
+      const htmlContent = marked.parse(markdownText);
+      document.getElementById('markdown-result').innerHTML = htmlContent;
+      currentDirection = detectTextDirection(markdownText);
+      document.getElementById('markdown-result').style.direction = currentDirection;
+    }
+    function copyResultCode() {
+      const resultDiv = document.getElementById('markdown-result');
+      const codeText = resultDiv.outerHTML;
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = codeText;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+      alert("تم نسخ كود النتيجة بنجاح!");
+    }
+    function copyResultHtml() {
+      const resultDiv = document.getElementById('markdown-result');
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = resultDiv.innerHTML;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
+      alert("تم نسخ النتيجة (HTML) بنجاح!");
+    }
+    function deleteResult(){
+      document.getElementById('markdown-result').innerHTML = "";
+    }
+    function printResult() {
+      const resultDivContent = document.getElementById('markdown-result').innerHTML;
+      const printWindow = window.open('about:blank', '_blank', 'width=800,height=600');
+      const langAttr = (currentDirection === 'rtl') ? 'ar' : 'en';
+      const styleContent = `
+        @media print {
+          body { -webkit-print-color-adjust: exact; }
         }
-      });
-    }
-    function selectAllContent(){
-      let editor = document.getElementById('contentEditor');
-      let range = document.createRange();
-      range.selectNodeContents(editor);
-      let sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-    function makeBold(){
-      document.execCommand('bold', false);
-    }
-    function makeItalic(){
-      document.execCommand('italic', false);
-    }
-    function addHeading(){
-      document.execCommand('formatBlock', false, 'h3');
-    }
-    function insertBefore(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert before:", "").then(val => {
-        if(val){
-          let div = document.createElement('div');
-          div.innerHTML = val;
-          selectedRange.insertNode(div);
+        body {
+          font-family: 'Roboto', sans-serif;
+          background: linear-gradient(135deg, #faf3e7, #eef7f6);
+          margin: 0;
+          padding: 0;
+          color: #2c3e50;
         }
-      });
-    }
-    function insertAfter(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert after:", "").then(val => {
-        if(val){
-          selectedRange.collapse(false);
-          let div = document.createElement('div');
-          div.innerHTML = val;
-          selectedRange.insertNode(div);
-        }
-      });
-    }
-    function insertInMiddle(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert in middle:", "").then(val => {
-        if(val){
-          let selText = selectedRange.toString();
-          let half = Math.floor(selText.length / 2);
-          let firstPart = selText.slice(0, half);
-          let secondPart = selText.slice(half);
-
-          selectedRange.deleteContents();
-          let frag = document.createDocumentFragment();
-          frag.appendChild(document.createTextNode(firstPart));
-          let div = document.createElement('span');
-          div.innerHTML = val;
-          frag.appendChild(div);
-          frag.appendChild(document.createTextNode(secondPart));
-          selectedRange.insertNode(frag);
-        }
-      });
-    }
-    function removeTag(){
-      document.execCommand('removeFormat', false);
-    }
-    function insertImage(){
-      customPrompt("Enter Image URL (or upload logic can be handled here):", "").then(val => {
-        if(val){
-          let img = `<img src="${val}" style="max-width:100%; height:auto;">`;
-          document.execCommand('insertHTML', false, img);
-        }
-      });
-    }
-    function insertVideo(){
-      customPrompt("Enter video URL:", "").then(val => {
-        if(val){
-          let vid = `<video src="${val}" controls></video>`;
-          document.execCommand('insertHTML', false, vid);
-        }
-      });
-    }
-    function insertIframe(){
-      customPrompt("Enter iFrame embed URL:", "").then(val => {
-        if(val){
-          let iframe = `<iframe src="${val}" style="width:560px; height:315px;"></iframe>`;
-          document.execCommand('insertHTML', false, iframe);
-        }
-      });
-    }
-    function insertLink(){
-      customPrompt("Enter URL:", "").then(url => {
-        if(url){
-          let selText = selectedRange ? selectedRange.toString() : url;
-          let linkHtml = `<a href="${url}" target="_blank">${selText}</a>`;
-          document.execCommand('insertHTML', false, linkHtml);
-        }
-      });
-    }
-    function insertText(){
-      customPrompt("Enter text to insert:", "").then(txt => {
-        if(txt){
-          document.execCommand('insertText', false, txt);
-        }
-      });
+        #printResult { padding: 20px; }
+      `;
+      printWindow.document.write(`
+        <html lang="${langAttr}" dir="${currentDirection}">
+          <head>
+            <meta charset="UTF-8" />
+            <title>Print Result</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet" crossorigin="anonymous">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+            <style>${styleContent}</style>
+          </head>
+          <body>
+            <div id="printResult" style="direction: ${currentDirection};">
+              ${resultDivContent}
+            </div>
+            <script>
+              window.onload = function() { window.print(); }
+            <\/script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
     }
 
-    function previewContent(){
-      let editorHtml = document.getElementById('contentEditor').innerHTML;
-      let previewArea = document.getElementById('previewArea');
-      let previewContent = document.getElementById('previewContent');
-      previewContent.innerHTML = editorHtml;
-      previewArea.style.display = 'block';
+    /****
+     * زر العائم لأدوات الـ triggers
+     ****/
+    function openToolsModal(){
+      document.getElementById('toolsOverlay').style.display = 'flex';
+    }
+    function closeToolsModal(){
+      document.getElementById('toolsOverlay').style.display = 'none';
+    }
+
+    // إضافة رابط
+    async function triggerAddLink(){
+      closeToolsModal();
+      // نسأل عن النص الذي سيظهر، والرابط
+      let textVal = await prompt("Enter link text:", "");
+      if(textVal === null) return;
+      let linkVal = await prompt("Enter link URL:", "https://");
+      if(linkVal === null) return;
+      // سنضيف في الماركداون [textVal](linkVal)
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n[${textVal}](${linkVal})\n`;
+      convertMarkdown();
+    }
+    // إضافة فيديو
+    async function triggerAddVideo(){
+      closeToolsModal();
+      let descText = await prompt("Enter text/description for the video:", "");
+      if(descText === null) return;
+      let vidUrl = await prompt("Enter video URL:", "https://");
+      if(vidUrl === null) return;
+      // مثلاً Markdown: 
+      // <video src="..." controls>descText</video>
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n<video src="${vidUrl}" controls>${descText}</video>\n`;
+      convertMarkdown();
+    }
+    // إضافة iFrame
+    async function triggerAddIframe(){
+      closeToolsModal();
+      let descText = await prompt("Enter some short description:", "");
+      if(descText === null) return;
+      let iframeUrl = await prompt("Enter iFrame embed URL:", "https://");
+      if(iframeUrl === null) return;
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n<div>\n  <h4>${descText}</h4>\n  <iframe src="${iframeUrl}" style="width:560px; height:315px;"></iframe>\n</div>\n`;
+      convertMarkdown();
+    }
+    // إضافة معرف سؤال Q-ID
+    async function triggerAddQuestionID(){
+      closeToolsModal();
+      let qidVal = await prompt("Enter Q-ID (e.g. 'cardio-q12'):", "");
+      if(qidVal === null) return;
+      // سنضيف مثلاً span بعلامة data-qid
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n<span data-qid="${qidVal}">Question Placeholder</span>\n`;
+      convertMarkdown();
+    }
+    // إضافة نص/Tag مخصص
+    async function triggerAddText(){
+      closeToolsModal();
+      let customText = await prompt("Enter any custom snippet:", "<div>My Custom HTML</div>");
+      if(customText === null) return;
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n${customText}\n`;
+      convertMarkdown();
+    }
+
+    /****
+     * رفع الصور
+     ****/
+    function openImageUploader(){
+      closeToolsModal();
+      document.getElementById('imageUploadOverlay').style.display = 'flex';
+      // نظف بعض الحقول
+      document.getElementById('localImageFile').value = "";
+      document.getElementById('uploadProgress').style.display = 'none';
+      document.getElementById('uploadProgressBar').style.width = '0%';
+      document.getElementById('uploadProgressBar').textContent = '0%';
+      document.getElementById('imageLinkInput').value = "";
+      document.getElementById('uploadedImagesList').innerHTML = "";
+    }
+    function closeImageUploader(){
+      document.getElementById('imageUploadOverlay').style.display = 'none';
+    }
+    // إضافة رابط صورة مباشرة
+    function insertImageLink(){
+      let linkVal = document.getElementById('imageLinkInput').value.trim();
+      if(!linkVal) return;
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n![Image](${linkVal})\n`;
+      convertMarkdown();
+      alert("تم إضافة رابط الصورة!");
+    }
+    // رفع صور من الجهاز
+    async function uploadLocalImages(){
+      let files = document.getElementById('localImageFile').files;
+      if(!files || files.length===0) return;
+      let ul = document.getElementById('uploadedImagesList');
+      document.getElementById('uploadProgress').style.display = 'block';
+      for(let i=0; i<files.length; i++){
+        let f = files[i];
+        // نقرأه كـ base64
+        let reader = new FileReader();
+        reader.onload = async function(e){
+          let base64Data = e.target.result.split(',')[1]; 
+          let body = {
+            name: f.name,
+            base64: base64Data
+          };
+          // لا يوجد رفع تدرجي حقيقي هنا؛ سنضع نسبة تقديرية
+          document.getElementById('uploadProgressBar').style.width = '50%';
+          document.getElementById('uploadProgressBar').textContent = 'Uploading... (50%)';
+          let r = await fetch('/api/upload-image', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+          });
+          let j = await r.json();
+          if(j.success){
+            // 100%
+            document.getElementById('uploadProgressBar').style.width = '100%';
+            document.getElementById('uploadProgressBar').textContent = '100%';
+            // أضف الرابط إلى القائمة
+            let li = document.createElement('li');
+            li.innerHTML = `Uploaded: <a href="${j.url}" target="_blank">${j.url}</a> 
+              <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${j.filePath}', this)">Delete</button>
+              <button class="btn btn-sm btn-info ms-2" onclick="insertThisImageLink('${j.url}')">Insert</button>`;
+            ul.appendChild(li);
+          } else {
+            let li = document.createElement('li');
+            li.innerHTML = `Error uploading ${f.name}: ${j.error || 'unknown error'}`;
+            ul.appendChild(li);
+          }
+        };
+        reader.readAsDataURL(f);
+      }
+    }
+    function insertThisImageLink(url){
+      let mdInput = document.getElementById('markdown-input');
+      mdInput.value += `\n![Image](${url})\n`;
+      convertMarkdown();
+      alert("تم إدراج الصورة في الماركداون!");
+    }
+    // حذف الصورة من المستودع
+    async function deleteImage(filePath, btnRef){
+      let conf = await confirm("Are you sure you want to delete this image from GitHub?");
+      if(!conf) return;
+      let r = await fetch(`/api/delete-image?filePath=${encodeURIComponent(filePath)}`, {
+        method: 'DELETE'
+      });
+      let j = await r.json();
+      if(j.success){
+        alert("Image deleted!");
+        // احذف العنصر من القائمة
+        btnRef.parentElement.remove();
+      } else {
+        alert("Failed to delete image: " + (j.error||''));
+      }
     }
   </script>
 </body>
