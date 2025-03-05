@@ -202,7 +202,6 @@ app.post('/api/save-content-file', async (req, res) => {
       console.warn("Possible conflict - local sha != remote sha for", fullPath);
     }
 
-    // جلب القديم
     const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
