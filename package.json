@@ -1,5 +1,5 @@
 {
-  "name": "sums-lq-project",
+  "name": "my-project",
   "version": "1.0.0",
   "scripts": {
     "start": "node server.js"
