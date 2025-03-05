@@ -85,7 +85,6 @@
       width: 100%;
       cursor: grab;
     }
-    /* لتفعيل سحب للتمرير بالماوس */
     #markdown-input:active {
       cursor: grabbing;
     }
@@ -98,7 +97,6 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-    /* زر تعديل/حذف الأدوات المدخلة */
     #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
@@ -214,6 +212,12 @@
       pointer-events: none;
       display: none;
     }
+    /* الرسالة الثابتة فوق زر Convert */
+    #selectionDonePrompt {
+      display: none;
+      margin-top: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -286,6 +290,15 @@
         <!-- محرر الماركداون -->
         <label for="markdown-input" class="form-label">Markdown Editor (drag to scroll):</label>
         <textarea class="form-control" id="markdown-input"></textarea>
+
+        <!-- مساحة رسالة "Finished Selection?" مع زري Yes/No -->
+        <div id="selectionDonePrompt">
+          <div class="bg-light p-3 border rounded">
+            <span>Finished text selection?</span>
+            <button class="btn btn-sm btn-success ms-2" onclick="selectionDoneYes()">Yes</button>
+            <button class="btn btn-sm btn-danger ms-2" onclick="selectionDoneNo()">No</button>
+          </div>
+        </div>
 
         <!-- زر واحد لتحويل -->
         <div class="row g-2 mt-2">
@@ -384,7 +397,6 @@
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
-      <!-- أربع/خمس خطوات بسيطة -->
       <div id="triggerFormContent"></div>
       <div class="modal-buttons">
         <button class="btn btn-secondary" onclick="closeTriggerForm()">Cancel</button>
@@ -424,7 +436,6 @@
     </div>
   </div>
 
-  <!-- عنصرين توجيهيين للتحديد -->
   <div class="selection-guides" id="selectionBox"></div>
 
   <!-- Bootstrap 5 JS Bundle -->
@@ -512,14 +523,11 @@
         if(!isDown) return;
         e.preventDefault();
         const y = e.pageY - mdInput.offsetTop;
-        const walk = (y - startY) * 1.5; // السرعة
+        const walk = (y - startY) * 1.5; 
         mdInput.scrollTop = scrollTop - walk;
       });
     })();
 
-    /****
-     *                 الأزرار العائمة للتمرير
-     ****/
     let scrollDown = true;
     function toggleScroll(){
       const btn = document.getElementById('floatScrollBtn');
@@ -537,10 +545,9 @@
     /****
      *                 إدارة exp_topics.json
      ****/
-    let expTopics = null;   // يتم تخزين كائن الـ JSON هنا
-    let topicsSha = null;   // الـ SHA الخاص بالملف على GitHub
+    let expTopics = null;  
+    let topicsSha = null;  
 
-    // جلب الملف
     async function loadExpTopics(){
       try {
         const res = await fetch('/api/get-exp-topics');
@@ -561,7 +568,6 @@
       }
     }
 
-    // حفظ الملف
     async function saveExpTopics(){
       if(!expTopics){
         alert("No data loaded yet.");
@@ -591,7 +597,6 @@
       }
     }
 
-    // دالة إعادة عرض شجرة المواضيع
     function renderTopicsTree(){
       const treeContainer = document.getElementById('topicsTree');
       treeContainer.innerHTML = '';
@@ -603,7 +608,6 @@
       });
     }
 
-    // عنصر واحد (قد يكون رئيسي أو فرعي...) - عامل تكرار Recursion
     function createNodeElement(nodeObj, path, level){
       let div = document.createElement('div');
       div.className = "topic-node";
@@ -613,10 +617,9 @@
       let nodeTitle = nodeObj.title || "Untitled";
       label.textContent = nodeTitle;
 
-      // أزرار التحكم
       let btnGroup = document.createElement('div');
       btnGroup.className = "btn-group-sm";
-      
+
       let upBtn = document.createElement('button');
       upBtn.className = "btn btn-secondary";
       upBtn.textContent = "▲";
@@ -644,7 +647,6 @@
       label.appendChild(btnGroup);
       div.appendChild(label);
 
-      // لو فيه subtopics
       if(nodeObj.subtopics && Array.isArray(nodeObj.subtopics)){
         nodeObj.subtopics.forEach((subtopic, i) => {
           let subDiv = document.createElement('div');
@@ -655,11 +657,9 @@
           div.appendChild(subDiv);
         });
       }
-
       return div;
     }
 
-    // تحريك للأعلى
     function moveNodeUp(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray > 0){
@@ -671,8 +671,6 @@
         loadContentFileList();
       }
     }
-
-    // تحريك للأسفل
     function moveNodeDown(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray < parentArray.length - 1){
@@ -684,8 +682,6 @@
         loadContentFileList();
       }
     }
-
-    // دالة للحصول على المصفوفة الأب والمؤشر
     function getParentArrayAndIndex(path){
       let parentRef = expTopics;
       for(let i = 0; i < path.length - 1; i++){
@@ -695,7 +691,6 @@
       return { parentArray: parentRef, indexInArray };
     }
 
-    // تعديل الاسم
     async function editNodeTitle(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
@@ -705,11 +700,9 @@
         newTitle = newTitle.trim();
         if(newTitle === "") return;
         node.title = newTitle;
-        
         if(node.dataFile){
           await renameContentFile(path, node); 
         }
-
         renderTopicsTree();
         fillParentSelect();
         loadContentFileList();
@@ -755,7 +748,6 @@
       outer();
       return chain;
     }
-
     async function renameContentFile(path, node){
       try {
         let oldPath = node.dataFile; 
@@ -1125,29 +1117,15 @@
     /****
      * زر عائم لأدوات الـ triggers
      ****/
-    let selectionInProgress = false; // لتتبع هل نحن في وضع تحديد النص
+    let selectionInProgress = false;
     function handleToolsModalClick(){
       if(selectionInProgress){
-        // نسأل المستخدم إن كان انتهى من التحديد
-        confirm("هل انتهيت من تحديد النص؟").then(answer=>{
-          if(answer){
-            // احصل على selection
-            let ta = document.getElementById('markdown-input');
-            let start = ta.selectionStart;
-            let end = ta.selectionEnd;
-            userSelectionRange = {start, end};
-            selectionInProgress = false;
-            openToolsModal(); // والآن نفتح النافذة
-          } else {
-            // لم ينته
-            return;
-          }
-        });
+        // بدلاً من النافذة المنبثقة confirm، نظهر القسم فوق زر Convert
+        document.getElementById('selectionDonePrompt').style.display = 'block';
       } else {
         openToolsModal();
       }
     }
-
     function openToolsModal(){
       document.getElementById('toolsOverlay').style.display = 'flex';
     }
@@ -1326,11 +1304,29 @@
     }
 
     function startSelectionMode(){
-      // أغلق نافذة formOverlay
+      // نخفي نافذة formOverlay
       document.getElementById('triggerFormOverlay').style.display = 'none';
-      // set selectionInProgress = true
+      // نُظهر الرسالة "Finished selection?" (لو كانت مخفية)
       selectionInProgress = true;
-      alert("تم إغلاق النافذة مؤقتًا. قم بتحديد النص في خانة الماركداون، ثم اضغط مجددًا على Tools & Triggers لإكمال العملية.");
+      document.getElementById('selectionDonePrompt').style.display = 'block';
+      alert("قم بتحديد النص في خانة الماركداون.");
+    }
+
+    function selectionDoneYes(){
+      // نخفي prompt
+      document.getElementById('selectionDonePrompt').style.display = 'none';
+      // نخزن range
+      let ta = document.getElementById('markdown-input');
+      let start = ta.selectionStart;
+      let end = ta.selectionEnd;
+      userSelectionRange = {start, end};
+      selectionInProgress = false;
+      // نعيد فتح نافذة الـ triggerForm بنفس الحالة
+      document.getElementById('triggerFormOverlay').style.display = 'flex';
+    }
+    function selectionDoneNo(){
+      document.getElementById('selectionDonePrompt').style.display = 'none';
+      selectionInProgress = true;
     }
 
     function applyTriggerInsertion(){
@@ -1339,8 +1335,10 @@
         return;
       }
       let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
-      let pos = document.getElementById('triggerPosition').value;
-      let val = document.getElementById('triggerLinkUrl').value || "";
+      let pos = document.getElementById('triggerPosition') ? document.getElementById('triggerPosition').value : "before";
+      let valEl = document.getElementById('triggerLinkUrl');
+      let val = valEl ? valEl.value || "" : "";
+
       let ta = document.getElementById('markdown-input');
       let textVal = ta.value;
       let beforeText = textVal.slice(0, userSelectionRange.start);
@@ -1378,7 +1376,6 @@
       } else if(pos==="after"){
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
-        // inside
         let mid = selectedText + finalInsert;
         replaced = beforeText + mid + afterText;
       }
