@@ -3,26 +3,33 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const cors = require('cors');
-const path = require('path'); // لإرسال ملف admin.html
+const path = require('path');
 
 const app = express();
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(cors());
 
-// اجلب البيانات من متغيرات البيئة
+// يطبع القيم للتحقق من توفرها (يمكن حذف console.log لاحقًا)
+console.log("GITHUB_TOKEN:", process.env.GITHUB_TOKEN ? "EXISTS" : "MISSING!");
+console.log("GITHUB_USER:", process.env.GITHUB_USER);
+console.log("MAIN_REPO_NAME:", process.env.MAIN_REPO_NAME);
+console.log("IMAGES_REPO_NAME:", process.env.IMAGES_REPO_NAME);
+
+// جلب متغيرات البيئة
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_USER = process.env.GITHUB_USER;
 const MAIN_REPO_NAME = process.env.MAIN_REPO_NAME;
 const IMAGES_REPO_NAME = process.env.IMAGES_REPO_NAME;
 
+// ترويسات GitHub
 const githubHeaders = {
   'Authorization': `Bearer ${GITHUB_TOKEN}`,
   'Accept': 'application/vnd.github+json'
 };
 
-// ================ دالة مساعدة لاستخراج SHA ================
-async function getFileSha(repoName, path){
-  const url = `https://api.github.com/repos/${GITHUB_USER}/${repoName}/contents/${path}`;
+/** دالة مساعدة لجلب SHA لملف في GitHub */
+async function getFileSha(repoName, filePath){
+  const url = `https://api.github.com/repos/${GITHUB_USER}/${repoName}/contents/${filePath}`;
   const res = await fetch(url, { headers: githubHeaders });
   if(res.status === 200){
     const json = await res.json();
@@ -31,32 +38,36 @@ async function getFileSha(repoName, path){
   return null;
 }
 
-// ================ 1) جلب exp_topics.json ================
+/** =============== مسارات الـ API =============== */
+
+/** 1) جلب exp_topics.json */
 app.get('/api/get-exp-topics', async (req, res) => {
   try {
-    const pathFile = `exp_data/exp_topics.json`; 
+    const pathFile = `exp_data/exp_topics.json`;
     const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
     const resp = await fetch(url, { headers: githubHeaders });
     if(resp.status !== 200){
       const t = await resp.text();
+      console.error("get-exp-topics error:", t);
       return res.json({ success: false, error: t });
     }
     const j = await resp.json();
     const content = Buffer.from(j.content, 'base64').toString('utf8');
     const parsed = JSON.parse(content);
-    res.json({ success: true, content: parsed, sha: j.sha });
+    return res.json({ success: true, content: parsed, sha: j.sha });
   } catch(e){
-    console.error(e);
-    res.json({ success: false, error: e.toString() });
+    console.error("get-exp-topics exception:", e);
+    return res.json({ success: false, error: e.toString() });
   }
 });
 
-// ================ 2) حفظ exp_topics.json ================
+/** 2) حفظ exp_topics.json */
 app.post('/api/save-exp-topics', async (req, res) => {
   try {
     const { content, sha } = req.body;
     const pathFile = `exp_data/exp_topics.json`;
     const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
+
     const encoded = Buffer.from(JSON.stringify(content, null, 2)).toString('base64');
     const body = {
       message: "Update exp_topics.json",
@@ -70,53 +81,60 @@ app.post('/api/save-exp-topics', async (req, res) => {
     });
     const j = await resp.json();
     if(!j.content){
+      console.error("save-exp-topics error:", j);
       return res.json({ success: false, error: j.message || 'Unknown error' });
     }
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch(e){
-    console.error(e);
-    res.json({ success: false, error: e.toString() });
+    console.error("save-exp-topics exception:", e);
+    return res.json({ success: false, error: e.toString() });
   }
 });
 
-// ================ 3) إضافة ملف جديد (فارغ) في exp_data ================
+/** 3) إنشاء ملف جديد في exp_data */
 app.post('/api/add-file', async (req, res) => {
   try {
-    let { fileName } = req.body;
-    if(!fileName) return res.json({ success:false, error: 'No fileName provided.' });
+    const { fileName } = req.body;
+    if(!fileName) return res.json({ success:false, error:'No fileName provided.' });
 
     const pathFile = `exp_data/${fileName}`;
     const defaultJson = { title: fileName.replace('.json',''), content: "" };
     const encoded = Buffer.from(JSON.stringify(defaultJson, null, 2)).toString('base64');
+
     const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
-    let body = {
+    const body = {
       message: `Create new file: ${fileName}`,
       content: encoded
     };
-    let resp = await fetch(url, {
+    const resp = await fetch(url, {
       method: 'PUT',
       headers: { ...githubHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    let j = await resp.json();
+    const j = await resp.json();
     if(j.content){
       return res.json({ success: true, filePath: pathFile });
     } else {
+      console.error("add-file error:", j);
       return res.json({ success: false, error: j.message || 'Could not create file' });
     }
   } catch(e){
-    console.error(e);
+    console.error("add-file exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-// ================ 4) حذف ملف من المستودع الرئيسي ================
+/** 4) حذف ملف من المستودع الرئيسي */
 app.delete('/api/delete-file', async (req, res) => {
   try {
     const filePath = req.query.filePath;
-    if(!filePath) return res.json({ success:false, error: 'No filePath provided.' });
+    if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
+
     const sha = await getFileSha(MAIN_REPO_NAME, filePath);
-    if(!sha) return res.json({ success:false, error:'File not found or no SHA.' });
+    if(!sha) {
+      console.error("delete-file: file not found or no SHA for", filePath);
+      return res.json({ success:false, error:'File not found or no SHA.' });
+    }
 
     const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const body = {
@@ -132,28 +150,31 @@ app.delete('/api/delete-file', async (req, res) => {
     if(j.commit){
       return res.json({ success:true });
     } else {
+      console.error("delete-file error:", j);
       return res.json({ success:false, error:j.message || 'Could not delete file' });
     }
   } catch(e){
-    console.error(e);
+    console.error("delete-file exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-// ================ 5) جلب ملف محتوى (dataFile) ================
+/** 5) جلب ملف محتوى (dataFile) */
 app.get('/api/get-content-file', async (req, res) => {
   try {
-    let filePath = req.query.filePath;
+    const filePath = req.query.filePath;
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
-    let url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
-    let resp = await fetch(url, { headers: githubHeaders });
+
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
+    const resp = await fetch(url, { headers: githubHeaders });
     if(resp.status !== 200){
-      let t = await resp.text();
+      const t = await resp.text();
+      console.error("get-content-file error text:", t);
       return res.json({ success:false, error:t });
     }
-    let j = await resp.json();
-    let contentDecoded = Buffer.from(j.content, 'base64').toString('utf8');
-    let parsed = {};
+    const j = await resp.json();
+    const contentDecoded = Buffer.from(j.content, 'base64').toString('utf8');
+    let parsed;
     try {
       parsed = JSON.parse(contentDecoded);
     } catch(err){
@@ -161,38 +182,43 @@ app.get('/api/get-content-file', async (req, res) => {
     }
     return res.json({ success:true, content: parsed, sha: j.sha });
   } catch(e){
-    console.error(e);
+    console.error("get-content-file exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-// ================ 6) حفظ ملف محتوى (dataFile) ================
+/** 6) حفظ ملف محتوى (dataFile) */
 app.post('/api/save-content-file', async (req, res) => {
   try {
-    let { filePath, sha, newContent } = req.body;
+    const { filePath, sha, newContent } = req.body;
     if(!filePath || !sha) return res.json({ success:false, error:'Missing filePath or sha' });
 
-    let oldSha = await getFileSha(MAIN_REPO_NAME, filePath);
+    // تحقق من SHA للملف على GitHub
+    const oldSha = await getFileSha(MAIN_REPO_NAME, filePath);
     if(oldSha !== sha){
-      console.warn("Possible conflict - SHA mismatch");
+      console.warn("Possible conflict - local sha != remote sha for", filePath);
     }
 
+    // اجلب المحتوى القديم
     const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
+      console.error("save-content-file: can't read old content", await respGet.text());
       return res.json({ success:false, error:'File not found or no permission' });
     }
     const getJson = await respGet.json();
-    let oldContent = Buffer.from(getJson.content, 'base64').toString('utf8');
-    let parsedOld = {};
+    const oldContent = Buffer.from(getJson.content, 'base64').toString('utf8');
+
+    let parsedOld;
     try {
       parsedOld = JSON.parse(oldContent);
     } catch(e){
       parsedOld = { content: oldContent };
     }
-    // حدِّث حقل content
+    // حدِّث الحقل
     parsedOld.content = newContent;
 
+    // ارفع المحتوى
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
     const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const putBody = {
@@ -209,28 +235,30 @@ app.post('/api/save-content-file', async (req, res) => {
     if(putJson.content && putJson.content.sha){
       return res.json({ success:true, newSha: putJson.content.sha });
     } else {
+      console.error("save-content-file put error:", putJson);
       return res.json({ success:false, error: putJson.message || 'Could not update file' });
     }
   } catch(e){
-    console.error(e);
+    console.error("save-content-file exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-// ================ 7) رفع صورة إلى مستودع الصور ================
+/** 7) رفع صورة إلى مستودع الصور */
 app.post('/api/upload-image', async (req, res) => {
   try {
-    let { name, base64 } = req.body;
+    const { name, base64 } = req.body;
     if(!name || !base64) return res.json({ success:false, error:'Missing name or base64' });
 
     let extension = name.split('.').pop().toLowerCase();
-    if(['jpg','jpeg','png','gif','webp'].indexOf(extension) === -1){
+    if(!['jpg','jpeg','png','gif','webp'].includes(extension)){
       extension = 'png';
     }
     let newFileName = Date.now() + '.' + extension;
     let pathFile = `pic/${newFileName}`;
 
-    let fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
+    // تأكد ألا يكون اسم الملف موجودًا
+    const fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
     if(fileSha){
       newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
       pathFile = `pic/${newFileName}`;
@@ -248,56 +276,61 @@ app.post('/api/upload-image', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      let rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
+      const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
       return res.json({ success:true, url: rawUrl, filePath: `pic/${newFileName}` });
     } else {
+      console.error("upload-image error:", j);
       return res.json({ success:false, error: j.message || 'Upload failed' });
     }
   } catch(e){
-    console.error(e);
+    console.error("upload-image exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-// ================ 8) حذف صورة من مستودع الصور ================
+/** 8) حذف صورة من مستودع الصور */
 app.delete('/api/delete-image', async (req, res) => {
   try {
-    let filePath = req.query.filePath;
+    const filePath = req.query.filePath;
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
-    let sha = await getFileSha(IMAGES_REPO_NAME, filePath);
-    if(!sha) return res.json({ success:false, error:'Image not found or no SHA.' });
 
-    let url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${filePath}`;
-    let body = {
+    const sha = await getFileSha(IMAGES_REPO_NAME, filePath);
+    if(!sha){
+      console.error("delete-image: file not found or no sha", filePath);
+      return res.json({ success:false, error:'Image not found or no SHA.' });
+    }
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${filePath}`;
+    const body = {
       message: `Delete image: ${filePath}`,
       sha: sha
     };
-    let resp = await fetch(url, {
+    const resp = await fetch(url, {
       method: 'DELETE',
       headers: { ...githubHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    let j = await resp.json();
+    const j = await resp.json();
     if(j.commit){
       return res.json({ success:true });
     } else {
+      console.error("delete-image error:", j);
       return res.json({ success:false, error:j.message || 'Could not delete image' });
     }
   } catch(e){
-    console.error(e);
+    console.error("delete-image exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
-}
+});
 
-// ========== تقديم الملفات الساكنة من نفس المجلد (ومن ضمنها admin.html) ==========
+/** تقديم أي ملف ثابت (ومن ضمنه admin.html) */
 app.use(express.static(__dirname));
 
-// ========== مسار احتياطي (Fallback) لأي طلب آخر يعيد admin.html ==========
+/** مسار احتياطي: أي طلب لا ينطبق على الـAPI أو ملف ثابت → أعد admin.html */
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// بدء الاستماع
+/** بدء السيرفر على بورت 3000 (محلي) أو ما تحدده Vercel */
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log("Server listening on port " + port);
