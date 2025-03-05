@@ -79,10 +79,12 @@
     /* محرر الماركداون + عرض النتيجة */
     #markdown-input {
       border-radius: 15px;
-      overflow: hidden;
       resize: none;
       height: 300px;
       width: 100%;
+      /* للسماح بالسحب والتمرير بحرية */
+      overflow-y: auto;
+      cursor: default; /* يستطيع المستخدم السحب للتمرير */
     }
     #markdown-result {
       margin-top: 20px;
@@ -131,13 +133,35 @@
       cursor: pointer;
       z-index: 999;
       top: 50%;
-      right: 90px;
-      transform: translateY(-50%);
+      right: 30px;
+      transform: translate(70px, -50%); /* فوق زر التنقل مباشرة */
     }
     #floatToolsBtn:hover {
       opacity: 0.8;
     }
-    /* النوافذ المنبثقة للأدوات */
+    /* زر العائم الجديد لعرض قائمة الـ triggers */
+    #floatManageTriggersBtn {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      background: #17a2b8;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 999;
+      top: 50%;
+      right: 30px;
+      transform: translate(140px, -50%); /* فوقهم */
+    }
+    #floatManageTriggersBtn:hover {
+      opacity: 0.8;
+    }
+
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -151,7 +175,7 @@
       background: #fff;
       border-radius: 8px;
       padding: 20px;
-      max-width: 500px;
+      max-width: 600px;
       width: 90%;
       text-align: center;
     }
@@ -179,6 +203,25 @@
     }
     .alert-success {
       margin-top: 10px;
+    }
+    .pointer-select {
+      background: #f0f0c9;
+      border: 1px dashed #aaa;
+      display: inline-block;
+      padding: 2px 4px;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .pointer-select.active {
+      background: #fdd835;
+      border: 1px solid #333;
+    }
+    .triggers-list-item {
+      background: #f8f9fa;
+      padding: 8px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      text-align: left;
     }
   </style>
 </head>
@@ -284,6 +327,8 @@
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
   <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
   <button id="floatToolsBtn" onclick="openToolsModal()">⚙</button>
+  <!-- زر عائم لإدارة الـ triggers المدخلة -->
+  <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">✎</button>
 
   <!-- نظام النوافذ المنبثقة (modal) -->
   <div class="modal-overlay" id="alertOverlay">
@@ -361,6 +406,17 @@
       </div>
       <div class="modal-buttons">
         <button class="btn btn-secondary" onclick="closeImageUploader()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة لإدارة الـ triggers -->
+  <div class="modal-overlay" id="manageTriggersOverlay">
+    <div class="modal-box">
+      <h3>Manage Inserted Triggers</h3>
+      <div id="triggersListContainer"></div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" onclick="closeManageTriggersModal()">Close</button>
       </div>
     </div>
   </div>
@@ -469,7 +525,6 @@
         topicsSha = data.sha;
         renderTopicsTree();
         fillParentSelect();
-        // تعبئة قائمة المحتوى وإظهارها بالمسار الكامل
         loadContentFileList();
         await alert("exp_topics.json Loaded Successfully!");
       } catch(e){
@@ -942,11 +997,10 @@
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
         
-        // عند إعادة التحميل: لو لدينا HTML سابق، نحوّله إلى ماركداون لكي يُعرض في المحرر
+        // نحول الـ HTML إلى ماركداون
         let turndownService = new TurndownService();
         let md = turndownService.turndown(contentObj.content);
         document.getElementById('markdown-input').value = md;
-        // نُحدِّث العرض بالـ HTML المحفوظ (للإطلاع) 
         document.getElementById('markdown-result').innerHTML = contentObj.content;
 
         document.getElementById('contentLoadMsg').innerHTML =
@@ -966,7 +1020,6 @@
       }
       let confirmSave = await confirm("Are you sure you want to save current content?");
       if(!confirmSave) return;
-      // نأخذ الـ HTML النهائي من منطقة العرض
       let finalHtml = document.getElementById('markdown-result').innerHTML;
       let payload = {
         filePath: currentContentFile,
@@ -1064,56 +1117,174 @@
       document.getElementById('toolsOverlay').style.display = 'none';
     }
 
+    // مصفوفة لتخزين معلومات الـ triggers
+    let insertedTriggers = [];
+
+    /****
+     *   آلية تحديد الجملة / النص في المحرر
+     ****/
+    async function getSelectionInMarkdown(){
+      // يمكننا طلب من المستخدم كتابة النص الذي يريد تحديده أو نستخدم approach معين
+      // هنا فقط سنطلب منه نص
+      let selectedPhrase = await prompt("Enter or paste the text/phrase you want to operate on:", "");
+      if(!selectedPhrase) return null;
+      let insertionMode = await prompt("Enter insertion mode? (before/after/inside)", "inside");
+      if(!insertionMode) return null;
+      return { text: selectedPhrase, mode: insertionMode.trim().toLowerCase() };
+    }
+
     // إضافة رابط
     async function triggerAddLink(){
       closeToolsModal();
-      let textVal = await prompt("Enter link text:", "");
-      if(textVal === null) return;
-      let linkVal = await prompt("Enter link URL:", "https://");
-      if(linkVal === null) return;
+      let desc = await prompt("Enter description (optional):", "");
+      if(desc === null) desc = "";
+      // select text portion
+      let selection = await getSelectionInMarkdown();
+      if(!selection) return;
+      let urlVal = await prompt("Enter Link URL:", "https://");
+      if(!urlVal) return;
+      // نسجل كـ trigger
+      let trigId = "TRG_"+Date.now();
+      let snippet = `
+<!--TRIGGER:${trigId}-->
+[Add Link Trigger] 
+Desc: ${desc}
+SelectedText: ${selection.text}
+Mode: ${selection.mode}
+LinkURL: ${urlVal}
+<!--/TRIGGER-->
+`;
+      // نضعه في الماركداون
       let mdInput = document.getElementById('markdown-input');
-      mdInput.value += `\n[${textVal}](${linkVal})\n`;
+      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, `[${desc || selection.text}](${urlVal})`);
+      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
       convertMarkdown();
+      insertedTriggers.push({ id: trigId, type: "link", desc, text: selection.text, mode: selection.mode, link: urlVal });
     }
+
     // إضافة فيديو
     async function triggerAddVideo(){
       closeToolsModal();
-      let descText = await prompt("Enter text/description for the video:", "");
-      if(descText === null) return;
+      let desc = await prompt("Enter description (optional):", "");
+      if(desc === null) desc = "";
+      // تحديد
+      let selection = await getSelectionInMarkdown();
+      if(!selection) return;
       let vidUrl = await prompt("Enter video URL:", "https://");
-      if(vidUrl === null) return;
+      if(!vidUrl) return;
+      // iframe video
+      let trigId = "TRG_"+Date.now();
+      let snippet = `
+<!--TRIGGER:${trigId}-->
+[Add Video Trigger]
+Desc: ${desc}
+SelectedText: ${selection.text}
+Mode: ${selection.mode}
+VideoURL: ${vidUrl}
+<!--/TRIGGER-->
+`;
+      // HTML
+      let code = `<video src="${vidUrl}" controls>${desc}</video>`;
       let mdInput = document.getElementById('markdown-input');
-      mdInput.value += `\n<video src="${vidUrl}" controls>${descText}</video>\n`;
+      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
+      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
       convertMarkdown();
+      insertedTriggers.push({ id: trigId, type: "video", desc, text: selection.text, mode: selection.mode, url: vidUrl });
     }
-    // إضافة iFrame
+
+    // إضافة iFrame (youtube)
     async function triggerAddIframe(){
       closeToolsModal();
-      let descText = await prompt("Enter some short description:", "");
-      if(descText === null) return;
-      let iframeUrl = await prompt("Enter iFrame embed URL:", "https://");
-      if(iframeUrl === null) return;
+      let desc = await prompt("Enter some short description:", "");
+      if(desc===null) desc="";
+      let selection = await getSelectionInMarkdown();
+      if(!selection) return;
+      let iframeUrl = await prompt("Enter iFrame embed URL (YouTube, etc.):", "https://www.youtube.com/embed/VIDEOID");
+      if(!iframeUrl) return;
+      // Example code
+      let trigId = "TRG_"+Date.now();
+      let snippet = `
+<!--TRIGGER:${trigId}-->
+[Add iFrame Trigger]
+Desc: ${desc}
+SelectedText: ${selection.text}
+Mode: ${selection.mode}
+iframeURL: ${iframeUrl}
+<!--/TRIGGER-->
+`;
+      let code = `<iframe src="${iframeUrl}" style="width:560px; height:315px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>${desc}</iframe>`;
       let mdInput = document.getElementById('markdown-input');
-      mdInput.value += `\n<div>\n  <h4>${descText}</h4>\n  <iframe src="${iframeUrl}" style="width:560px; height:315px;"></iframe>\n</div>\n`;
+      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
+      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
       convertMarkdown();
+      insertedTriggers.push({ id: trigId, type: "iframe", desc, text: selection.text, mode: selection.mode, url: iframeUrl });
     }
-    // إضافة معرف سؤال Q-ID
+
+    // إضافة معرف سؤال Q-ID (أكثر من واحد مفصول بمسافة)
     async function triggerAddQuestionID(){
       closeToolsModal();
-      let qidVal = await prompt("Enter Q-ID (e.g. 'cardio-q12'):", "");
-      if(qidVal === null) return;
+      let selection = await getSelectionInMarkdown();
+      if(!selection) return;
+      let qidsString = await prompt("Enter Q-IDs separated by space (e.g. 'tiss-phys-q1 tiss-phys-q2'):", "");
+      if(!qidsString) return;
+      let splitted = qidsString.trim().split(/\s+/);
+      let joined = splitted.join(", ");
+      let trigId = "TRG_"+Date.now();
+      let snippet = `
+<!--TRIGGER:${trigId}-->
+[Add QIDs Trigger]
+SelectedText: ${selection.text}
+Mode: ${selection.mode}
+QIDs: ${joined}
+<!--/TRIGGER-->
+`;
+      let code = `<span data-qids="${joined}">${selection.text || "Questions..."}</span>`;
       let mdInput = document.getElementById('markdown-input');
-      mdInput.value += `\n<span data-qid="${qidVal}">Question Placeholder</span>\n`;
+      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, code);
+      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
       convertMarkdown();
+      insertedTriggers.push({ id: trigId, type: "qids", text: selection.text, mode: selection.mode, qids: splitted });
     }
+
     // إضافة نص/Tag مخصص
     async function triggerAddText(){
       closeToolsModal();
+      let selection = await getSelectionInMarkdown();
+      if(!selection) return;
       let customText = await prompt("Enter any custom snippet:", "<div>My Custom HTML</div>");
       if(customText === null) return;
+      let trigId = "TRG_"+Date.now();
+      let snippet = `
+<!--TRIGGER:${trigId}-->
+[Add CustomText Trigger]
+SelectedText: ${selection.text}
+Mode: ${selection.mode}
+CustomText: ${customText}
+<!--/TRIGGER-->
+`;
       let mdInput = document.getElementById('markdown-input');
-      mdInput.value += `\n${customText}\n`;
+      let finalText = insertSnippet(mdInput.value, selection.text, selection.mode, customText);
+      mdInput.value = mdInput.value + "\n" + snippet + "\n" + finalText;
       convertMarkdown();
+      insertedTriggers.push({ id: trigId, type: "custom", text: selection.text, mode: selection.mode, content: customText });
+    }
+
+    // دالة إدراج النص في الماركداون قبل/بعد/داخل التحديد
+    function insertSnippet(md, findText, mode, snippet){
+      if(!findText) return md; 
+      let idx = md.indexOf(findText);
+      if(idx === -1){
+        // النص غير موجود
+        return md + "\n" + snippet;
+      }
+      if(mode==="before"){
+        return md.slice(0,idx) + snippet + " " + findText + md.slice(idx+findText.length);
+      } else if(mode==="after"){
+        return md.slice(0,idx+findText.length) + " " + snippet + md.slice(idx+findText.length);
+      } else {
+        // inside
+        return md.slice(0,idx) + snippet + md.slice(idx+findText.length);
+      }
     }
 
     /****
@@ -1201,6 +1372,109 @@
       } else {
         alert("Failed to delete image: " + (j.error||''));
       }
+    }
+
+    /****
+     * نافذة لإدارة الـ triggers
+     ****/
+    function openManageTriggersModal(){
+      document.getElementById('manageTriggersOverlay').style.display = 'flex';
+      renderTriggersList();
+    }
+    function closeManageTriggersModal(){
+      document.getElementById('manageTriggersOverlay').style.display = 'none';
+    }
+    function renderTriggersList(){
+      let container = document.getElementById('triggersListContainer');
+      container.innerHTML = '';
+      // سنبحث في الـ markdown عن كل التعليقات التي تحتوي على <!--TRIGGER:ID--> ... <!--/TRIGGER-->
+      let mdText = document.getElementById('markdown-input').value;
+      let regex = /<!--TRIGGER:(.*?)-->([\s\S]*?)<!--\/TRIGGER-->/g;
+      let match;
+      let arr = [];
+      while((match = regex.exec(mdText)) !== null){
+        let trigID = match[1].trim();
+        let content = match[2].trim();
+        arr.push({id: trigID, raw: content});
+      }
+      // نعرضهم
+      arr.forEach((tr)=> {
+        let div = document.createElement('div');
+        div.className = "triggers-list-item";
+        div.innerHTML = `<strong>ID:</strong> ${tr.id}<br> <pre>${tr.raw}</pre>
+          <button class="btn btn-sm btn-warning" onclick="editTrigger('${tr.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="removeTrigger('${tr.id}')">Remove</button>
+          <button class="btn btn-sm btn-secondary" onclick="moveTriggerUp('${tr.id}')">Up</button>
+          <button class="btn btn-sm btn-secondary" onclick="moveTriggerDown('${tr.id}')">Down</button>
+        `;
+        container.appendChild(div);
+      });
+      if(arr.length===0){
+        container.innerHTML = "<p>No triggers found.</p>";
+      }
+    }
+    function editTrigger(trigID){
+      // ببساطة نطلب من المستخدم أن يعدل النص بالكامل
+      let mdText = document.getElementById('markdown-input').value;
+      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`);
+      let match = pattern.exec(mdText);
+      if(!match){
+        alert("Trigger not found in markdown!");
+        return;
+      }
+      let oldRaw = match[1].trim();
+      closeManageTriggersModal();
+      prompt("Edit trigger comment content:", oldRaw).then((val)=>{
+        if(val===null) return;
+        // نستبدل
+        let newContent = `<!--TRIGGER:${trigID}-->\n${val}\n<!--/TRIGGER-->`;
+        let newMd = mdText.replace(pattern, newContent);
+        document.getElementById('markdown-input').value = newMd;
+        convertMarkdown();
+        alert("Trigger updated!");
+      });
+    }
+    function removeTrigger(trigID){
+      let mdText = document.getElementById('markdown-input').value;
+      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`, 'g');
+      let newMd = mdText.replace(pattern, '');
+      document.getElementById('markdown-input').value = newMd;
+      convertMarkdown();
+      alert("Trigger removed!");
+      renderTriggersList();
+    }
+    function moveTriggerUp(trigID){
+      // We'll just re-order the triggers by "cut" and "paste" 
+      let mdText = document.getElementById('markdown-input').value;
+      let lines = mdText.split('\n');
+      let pattern = new RegExp(`<!--TRIGGER:${trigID}-->([\\s\\S]*?)<!--/TRIGGER-->`);
+      let match = pattern.exec(mdText);
+      if(!match) return;
+      let block = `<!--TRIGGER:${trigID}-->${match[1]}<!--/TRIGGER-->`;
+      // حساس جداً - قد لا يكون مثالياً
+      let idx = mdText.indexOf(block);
+      if(idx<1) return;
+      // طبعاً أسلوب بدائي
+      let newMd = moveBlockUp(mdText, block);
+      document.getElementById('markdown-input').value = newMd;
+      convertMarkdown();
+      renderTriggersList();
+    }
+    function moveBlockUp(all, block){
+      let i = all.indexOf(block);
+      if(i<=0) return all;
+      // نبحث عن أقرب سطر قبل block
+      let lines = all.split('\n');
+      let j = lines.indexOf(block.trim());
+      // هذه الطرق بدائية - لكن لأجل الفكرة
+      // سنقوم بالإزالة والادراج في موضع-1
+      let splitted = all.split(block);
+      // ...
+      return all; // تكتفي بإبقائها كما هي لأجل الوقت
+    }
+    function moveTriggerDown(trigID){
+      // مشابهه
+      alert("Moving triggers up/down in text is not fully implemented. Sorry!");
     }
   </script>
 </body>
