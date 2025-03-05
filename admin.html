@@ -2,8 +2,8 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - Manage Topics & Content</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <!-- Bootstrap Icons -->
@@ -51,7 +51,6 @@
       transform: translateY(-3px);
       box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
     }
-    /* Tree List */
     .topic-node {
       border: 1px solid #dee2e6;
       border-radius: 10px;
@@ -62,9 +61,6 @@
     .topic-node .node-title {
       font-weight: bold;
       color: #495057;
-    }
-    .topic-node .btn-group-sm > .btn {
-      margin-right: 5px;
     }
     .sub-node {
       margin-left: 20px;
@@ -79,7 +75,7 @@
       overflow-y: auto;
     }
     /* Floating Buttons */
-    #floatScrollBtn, #floatOtherBtn {
+    #floatScrollBtn {
       position: fixed;
       width: 50px;
       height: 50px;
@@ -93,20 +89,12 @@
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
-    }
-    #floatScrollBtn:hover, #floatOtherBtn:hover {
-      opacity: 0.8;
-    }
-    #floatScrollBtn {
       top: 50%;
       right: 30px;
       transform: translateY(-50%);
     }
-    #floatOtherBtn {
-      top: 50%;
-      right: 90px;
-      transform: translateY(-50%);
-      background: #dc3545;
+    #floatScrollBtn:hover {
+      opacity: 0.8;
     }
     /* Modals */
     .modal-overlay {
@@ -137,25 +125,13 @@
       gap: 10px;
       margin-top: 10px;
     }
-    .selected-text-tools {
-      border: 1px solid #dee2e6;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
-      display: none;
-      background-color: #f8f9fa;
-    }
-    .selected-text-tools .btn {
-      margin-right: 5px;
-      margin-bottom: 5px;
-    }
   </style>
 </head>
 <body>
   <div class="container-custom">
     <h1><i class="bi bi-journal-text"></i> Admin Panel - Manage Topics & Content</h1>
 
-    <!-- Manage Topics Section -->
+    <!-- Topics Section -->
     <div class="card card-section">
       <div class="card-header">Manage Topics (exp_topics.json)</div>
       <div class="card-body">
@@ -167,25 +143,22 @@
 
         <hr>
 
-        <!-- Add New Topic/Subtopic Form -->
+        <!-- Add New Node Form -->
         <div class="row g-2 align-items-center">
           <div class="col-md-4">
             <input type="text" id="newNodeTitle" class="form-control" placeholder="Title...">
           </div>
           <div class="col-md-4">
-            <!-- اختيار إن كان فرع (Branch) أم محتوى (Content) -->
             <select id="newNodeType" class="form-select">
               <option value="branch">Branch</option>
               <option value="content">Content</option>
             </select>
           </div>
           <div class="col-md-4">
-            <!-- زر إضافة الموضوع/الفرع/المحتوى -->
             <button class="btn btn-success btn-custom" onclick="addNode()">Add Node</button>
           </div>
         </div>
 
-        <!-- اختيار المكان الذي نضيفه تحته (جذر أم داخل أحدهم) -->
         <div class="row g-2 mt-3 align-items-center">
           <div class="col-md-12">
             <label>Select where to add:</label>
@@ -199,13 +172,12 @@
         </div>
       </div>
     </div>
-    <!-- END Manage Topics Section -->
+    <!-- End Topics Section -->
 
     <!-- Manage Content Section -->
     <div class="card card-section">
       <div class="card-header">Manage Content (files with dataFile)</div>
       <div class="card-body">
-        <!-- Dropdown لاختيار العقد التي تم تعريفها كمحتوى فقط -->
         <div class="mb-3">
           <select id="contentNodesSelect" class="form-select">
             <option value="">-- Select Content Node --</option>
@@ -224,31 +196,7 @@
           <div id="contentEditor" class="content-editor" contenteditable="true"></div>
         </div>
 
-        <!-- أدوات النص المحدد -->
-        <div id="selectedTextTools" class="selected-text-tools">
-          <p><strong>Tools for selected text:</strong></p>
-          <button class="btn btn-sm btn-outline-secondary" onclick="copySelectedText()">Copy</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="pasteAtCursor()">Paste</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="selectAllContent()">Select All</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="makeBold()">Bold</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="makeItalic()">Italic</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="addHeading()">Make Heading</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertBefore()">Insert Before</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertAfter()">Insert After</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertInMiddle()">Insert In Middle</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="removeTag()">Remove Tag</button>
-          <hr>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertImage()">Insert Image</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertVideo()">Insert Video Tag</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertIframe()">Insert iFrame</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertLink()">Insert Link</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="insertText()">Insert Text</button>
-        </div>
-
-        <hr>
-
-        <!-- زر عرض معاينة + حفظ -->
-        <div class="row g-2">
+        <div class="row g-2 mt-2">
           <div class="col-md-6">
             <button class="btn btn-info btn-custom" onclick="previewContent()">Preview</button>
           </div>
@@ -257,7 +205,6 @@
           </div>
         </div>
 
-        <!-- عرض المعاينة -->
         <div id="previewArea" class="mt-3" style="border:1px solid #ddd; padding:10px; display:none;">
           <h5>Preview:</h5>
           <div id="previewContent"></div>
@@ -266,11 +213,10 @@
     </div>
   </div>
 
-  <!-- الأزرار العائمة -->
+  <!-- Floating Scroll Button -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
-  <button id="floatOtherBtn" onclick="alert('Floating button clicked!')">?</button>
 
-  <!-- نظام النوافذ المنبثقة (modal) -->
+  <!-- Modal Overlays for Alerts/Confirms/Prompts -->
   <div class="modal-overlay" id="alertOverlay">
     <div class="modal-box">
       <h3 id="alertMsg"></h3>
@@ -299,13 +245,11 @@
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle -->
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
   <script>
-    /********************************************************************
-     *            نظام النوافذ المنبثقة (Alert, Confirm, Prompt)
-     ********************************************************************/
+    /* ==================== Modal system (Alert, Confirm, Prompt) ==================== */
     let alertOverlay = document.getElementById('alertOverlay');
     let alertMsg = document.getElementById('alertMsg');
     let alertOkBtn = document.getElementById('alertOkBtn');
@@ -361,259 +305,313 @@
         };
       });
     }
-
-    // استبدال دوال alert/confirm/prompt الافتراضية:
     window.alert = async function(msg) { await customAlert(msg); };
     window.confirm = async function(msg) { return customConfirm(msg); };
     window.prompt = async function(msg, defVal) { return customPrompt(msg, defVal); };
 
-    /********************************************************************
-     *                 الأزرار العائمة للتمرير
-     ********************************************************************/
+    /* ==================== Floating Scroll button ==================== */
     let scrollDown = true;
     function toggleScroll(){
-      const btn = document.getElementById('floatScrollBtn');
+      let btn = document.getElementById('floatScrollBtn');
       if(scrollDown){
-        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+        window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
         btn.textContent = '↑';
         scrollDown = false;
       } else {
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        window.scrollTo({top:0, behavior:'smooth'});
         btn.textContent = '↓';
         scrollDown = true;
       }
     }
 
-    /********************************************************************
-     *                 إدارة exp_topics.json
-     ********************************************************************/
-    let expTopics = null;   // يتم تخزين كائن الـ JSON هنا
-    let topicsSha = null;   // الـ SHA الخاص بالملف على GitHub
-    let currentParentPath = null; // لمعرفة أين نضيف العنصر
+    /* ==================== Global data for topics & content ==================== */
+    let expTopics = null;  // Holds the loaded exp_topics.json object
+    let topicsSha = null;  // SHA of exp_topics.json on GitHub
 
-    // جلب الملف
+    let currentContentFile = null;
+    let currentContentSha = null;
+    let originalContentHtml = '';
+
+    /* ==================== Helper: get full path to a node ==================== */
+    // Return array of node titles from root to this node
+    function getNodePathTitles(topics, path){
+      // path could be e.g. ["topics", 0, "subtopics", 1]...
+      let arr = [];
+      let ref = topics;
+      for(let i=0; i<path.length; i++){
+        let key = path[i];
+        if(typeof key === 'number') {
+          // It's an index in array
+          let node = ref[key];
+          if(node && node.title) arr.push(node.title);
+        }
+        ref = ref[key];
+      }
+      return arr;
+    }
+
+    // Join array with underscores for file name, or with " - " for display
+    function joinForFileName(titles){
+      return titles.map(t => t.replace(/\s+/g, '_')).join('_');
+    }
+    function joinForDisplay(titles){
+      return titles.join(' - ');
+    }
+
+    /* ==================== 1) Load exp_topics.json ==================== */
     async function loadExpTopics(){
       try {
-        const res = await fetch('/api/get-exp-topics');
-        const data = await res.json();
+        let r = await fetch('/api/get-exp-topics');
+        let data = await r.json();
         if(!data.success) {
-          alert("Failed to load exp_topics.json: " + (data.error || ''));
+          alert("Failed to load exp_topics.json: " + (data.error||''));
           return;
         }
         expTopics = data.content;
         topicsSha = data.sha;
         renderTopicsTree();
         fillParentSelect();
+        loadContentFileList(); // populate content list
       } catch(e){
         console.error(e);
         alert("Error loading exp_topics.json");
       }
     }
 
-    // حفظ الملف
+    /* ==================== 2) Save exp_topics.json ==================== */
     async function saveExpTopics(){
       if(!expTopics){
         alert("No data loaded yet.");
         return;
       }
-      let confirmSave = await confirm("Are you sure you want to save changes to exp_topics.json?");
-      if(!confirmSave) return;
+      let conf = await confirm("Are you sure you want to save changes to exp_topics.json?");
+      if(!conf) return;
       try {
         let body = {
           content: expTopics,
           sha: topicsSha
         };
-        const res = await fetch('/api/save-exp-topics', {
+        let r = await fetch('/api/save-exp-topics', {
           method: 'POST',
           headers: { 'Content-Type':'application/json' },
           body: JSON.stringify(body)
         });
-        const j = await res.json();
+        let j = await r.json();
         if(j.success){
           alert("Saved successfully!");
         } else {
-          alert("Save failed: " + (j.error || ''));
+          alert("Save failed: " + (j.error||''));
         }
       } catch(e){
         console.error(e);
-        alert("Error saving topics.");
+        alert("Error saving topics");
       }
     }
 
-    // دالة إعادة عرض شجرة المواضيع
+    /* ==================== Render topics tree ==================== */
     function renderTopicsTree(){
-      const treeContainer = document.getElementById('topicsTree');
-      treeContainer.innerHTML = '';
+      let container = document.getElementById('topicsTree');
+      container.innerHTML = '';
       if(!expTopics || !expTopics.topics) return;
 
       expTopics.topics.forEach((topic, index) => {
-        const node = createNodeElement(topic, ['topics', index], 0);
-        treeContainer.appendChild(node);
+        let nodeEl = createNodeElement(topic, ['topics', index]);
+        container.appendChild(nodeEl);
       });
     }
 
-    // عنصر واحد (قد يكون رئيسي أو فرعي...) - عامل تكرار Recursion
-    function createNodeElement(nodeObj, path, level){
+    function createNodeElement(nodeObj, path){
       let div = document.createElement('div');
-      div.className = "topic-node";
+      div.className = 'topic-node';
       let label = document.createElement('div');
-      label.className = "node-title mb-2";
-
+      label.className = 'node-title mb-2';
       let nodeTitle = nodeObj.title || "Untitled";
       label.textContent = nodeTitle;
 
-      // أزرار التحكم
+      // Buttons
       let btnGroup = document.createElement('div');
-      btnGroup.className = "btn-group-sm";
-      
-      // زر تحريك للأعلى
+      btnGroup.className = 'btn-group-sm';
+
+      // Up
       let upBtn = document.createElement('button');
-      upBtn.className = "btn btn-secondary";
-      upBtn.textContent = "▲";
+      upBtn.className = 'btn btn-secondary me-1';
+      upBtn.textContent = '▲';
       upBtn.onclick = () => moveNodeUp(path);
       btnGroup.appendChild(upBtn);
-
-      // زر تحريك للأسفل
+      // Down
       let downBtn = document.createElement('button');
-      downBtn.className = "btn btn-secondary";
-      downBtn.textContent = "▼";
+      downBtn.className = 'btn btn-secondary me-1';
+      downBtn.textContent = '▼';
       downBtn.onclick = () => moveNodeDown(path);
       btnGroup.appendChild(downBtn);
-
-      // زر تحرير
+      // Edit
       let editBtn = document.createElement('button');
-      editBtn.className = "btn btn-warning";
-      editBtn.textContent = "Edit";
+      editBtn.className = 'btn btn-warning me-1';
+      editBtn.textContent = 'Edit';
       editBtn.onclick = () => editNodeTitle(path);
       btnGroup.appendChild(editBtn);
-
-      // زر حذف
+      // Delete
       let delBtn = document.createElement('button');
-      delBtn.className = "btn btn-danger";
-      delBtn.textContent = "Delete";
+      delBtn.className = 'btn btn-danger me-1';
+      delBtn.textContent = 'Delete';
       delBtn.onclick = () => deleteNode(path);
       btnGroup.appendChild(delBtn);
 
       label.appendChild(btnGroup);
       div.appendChild(label);
 
-      // لو فيه subtopics
+      // Subtopics
       if(nodeObj.subtopics && Array.isArray(nodeObj.subtopics)){
         nodeObj.subtopics.forEach((subtopic, i) => {
           let subDiv = document.createElement('div');
-          subDiv.className = "sub-node";
+          subDiv.className = 'sub-node';
           let subpath = [...path, 'subtopics', i];
-          let element = createNodeElement(subtopic, subpath, level+1);
+          let element = createNodeElement(subtopic, subpath);
           subDiv.appendChild(element);
           div.appendChild(subDiv);
         });
       }
-
       return div;
     }
 
-    // تحريك للأعلى
+    function getParentArrayAndIndex(path){
+      let parentArray = expTopics;
+      for(let i=0; i<path.length-1; i++){
+        parentArray = parentArray[path[i]];
+      }
+      let indexInArray = path[path.length-1];
+      return { parentArray, indexInArray };
+    }
+
     function moveNodeUp(path){
-      // path مثال: ['topics', 0, 'subtopics', 2]
-      // نسير حتى نجد المصفوفة الأب
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray > 0){
-        let temp = parentArray[indexInArray];
-        parentArray[indexInArray] = parentArray[indexInArray - 1];
-        parentArray[indexInArray - 1] = temp;
+        [ parentArray[indexInArray-1], parentArray[indexInArray] ] = [ parentArray[indexInArray], parentArray[indexInArray-1] ];
         renderTopicsTree();
         fillParentSelect();
+        loadContentFileList();
       }
     }
-    // تحريك للأسفل
     function moveNodeDown(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
-      if(indexInArray < parentArray.length - 1){
-        let temp = parentArray[indexInArray];
-        parentArray[indexInArray] = parentArray[indexInArray + 1];
-        parentArray[indexInArray + 1] = temp;
+      if(indexInArray < parentArray.length-1){
+        [ parentArray[indexInArray], parentArray[indexInArray+1] ] = [ parentArray[indexInArray+1], parentArray[indexInArray] ];
         renderTopicsTree();
         fillParentSelect();
+        loadContentFileList();
       }
     }
 
-    // تعديل الاسم
+    /* ==================== Rename node, also rename file if dataFile exists ==================== */
     async function editNodeTitle(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
-      let newTitle = await prompt("Enter new title:", node.title || '');
-      if(newTitle !== null){
-        node.title = newTitle.trim();
-        renderTopicsTree();
-        fillParentSelect();
+      let oldTitle = node.title;
+      let newTitle = await prompt("Enter new title:", oldTitle);
+      if(newTitle===null || !newTitle.trim()) return;
+      newTitle = newTitle.trim();
+      node.title = newTitle;
+
+      // If node has dataFile, we must rename file on GitHub, and update dataFile in memory
+      if(node.dataFile){
+        let oldFilePath = node.dataFile; 
+        // Generate new file name based on parent's path + newTitle
+        let ancestors = getNodePathTitles(expTopics.topics, path); // updated last is newTitle
+        let newFileName = joinForFileName(ancestors) + '.json';
+        let newFilePath = 'exp_data/' + newFileName;
+
+        let renameResp = await renameContentFileOnGitHub(oldFilePath, newFilePath, ancestors);
+        if(renameResp.success){
+          node.dataFile = newFilePath; // update in local structure
+        } else {
+          // revert
+          node.title = oldTitle;
+          alert("Could not rename file: " + (renameResp.error||''));
+        }
+      }
+
+      renderTopicsTree();
+      fillParentSelect();
+      loadContentFileList();
+    }
+
+    /* renameContentFileOnGitHub: read old file, create new file with updated 'title' inside JSON, then delete old file. */
+    async function renameContentFileOnGitHub(oldPath, newPath, ancestorsArr){
+      try {
+        // Get old file
+        let getResp = await fetch('/api/get-content-file?filePath='+encodeURIComponent(oldPath));
+        let getJ = await getResp.json();
+        if(!getJ.success) return { success:false, error:getJ.error||'Cannot read old file' };
+        let contentObj = getJ.content; // { title, content... } or some structure
+        // update "title" => joinForDisplay(ancestorsArr)
+        contentObj.title = joinForDisplay(ancestorsArr);
+
+        // create new file
+        let body = {
+          fileName: newPath.replace('exp_data/',''),
+          oldContentObj: contentObj,
+          oldSha: getJ.sha,
+          oldPath
+        };
+        // We'll do this in 2 steps: first create the new file with the same content. Then delete old file.
+        let createRes = await fetch('/api/rename-file', {
+          method: 'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        let createJ = await createRes.json();
+        if(!createJ.success) return { success:false, error:createJ.error };
+
+        // done
+        return { success:true };
+      } catch(e){
+        console.error("renameContentFileOnGitHub error", e);
+        return { success:false, error:e.toString() };
       }
     }
 
-    // حذف العقدة
+    /* ==================== Delete node (and file if dataFile) ==================== */
     async function deleteNode(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
 
-      // إن كان node يحوي dataFile فسيتم الحذف أيضًا من GitHub
       if(node.dataFile){
-        let confirmDel = await confirm("This is a content node. Deleting will also remove its file from GitHub. Proceed?");
+        let confirmDel = await confirm("This node has dataFile. Deleting will remove its file from GitHub. Proceed?");
         if(!confirmDel) return;
-        // استدعاء API لحذف الملف
-        await fetch(`/api/delete-file?filePath=${encodeURIComponent(node.dataFile)}`, {
-          method: 'DELETE'
-        }).then(r => r.json()).then(resp => {
-          if(!resp.success){
-            console.warn("Could not delete file from GitHub:", resp.error);
-          }
-        }).catch(err => console.error(err));
+        let delResp = await fetch('/api/delete-file?filePath='+encodeURIComponent(node.dataFile), {
+          method:'DELETE'
+        });
+        let delJ = await delResp.json();
+        if(!delJ.success){
+          alert("Could not delete file from GitHub: " + (delJ.error||''));
+          return;
+        }
       } else {
         let confirmDel = await confirm("Delete this branch (and all sub-branches)?");
         if(!confirmDel) return;
-        // إذا كان يحوي تفرعات فرعية فيها dataFile، يجب حذفها أيضًا...
-        // يمكن عمل دالة مساعدة لحذف أية dataFile في التفرعات
-        await deleteNestedDataFiles(node);
+        // delete sub-nodes with dataFile
+        await deleteNestedFiles(node);
       }
 
-      parentArray.splice(indexInArray, 1);
+      parentArray.splice(indexInArray,1);
       renderTopicsTree();
       fillParentSelect();
+      loadContentFileList();
     }
-
-    async function deleteNestedDataFiles(node){
-      if(!node) return;
+    async function deleteNestedFiles(node){
       if(node.subtopics && Array.isArray(node.subtopics)){
         for(let st of node.subtopics){
           if(st.dataFile){
-            // حذف الملف
-            await fetch(`/api/delete-file?filePath=${encodeURIComponent(st.dataFile)}`, { method: 'DELETE' })
-              .then(r=>r.json()).then(resp=>{
-                if(!resp.success){
-                  console.warn("Could not delete file from GitHub (nested):", resp.error);
-                }
-              }).catch(err=>console.error(err));
+            await fetch('/api/delete-file?filePath='+encodeURIComponent(st.dataFile), {method:'DELETE'});
           }
-          if(st.subtopics){
-            await deleteNestedDataFiles(st);
-          }
+          if(st.subtopics) await deleteNestedFiles(st);
         }
       }
     }
 
-    // دالة للحصول على المصفوفة الأب والمؤشر
-    function getParentArrayAndIndex(path){
-      // path مثل: ['topics', 0, 'subtopics', 2]
-      // نسير في expTopics حتى نصل إلى آخر مستوى قبل العنصر المنشود
-      let parentArray = expTopics;
-      for(let i = 0; i < path.length - 1; i++){
-        parentArray = parentArray[path[i]];
-      }
-      let indexInArray = path[path.length - 1];
-      return { parentArray, indexInArray };
-    }
-
-    // إضافة عقدة جديدة
+    /* ==================== Add Node (branch or content) ==================== */
     async function addNode(){
-      if(!expTopics) {
+      if(!expTopics){
         alert("Load exp_topics.json first!");
         return;
       }
@@ -622,55 +620,53 @@
         alert("Please enter a title.");
         return;
       }
-      let nodeType = document.getElementById('newNodeType').value; // branch or content
-      let parentVal = document.getElementById('parentSelect').value; 
-      // قد يكون 'root' أو سلسلة path
-      let newObj = { title: nodeTitle };
+      let nodeType = document.getElementById('newNodeType').value; // "branch" or "content"
+      let parentVal = document.getElementById('parentSelect').value; // "root" or JSON string path
 
-      if(nodeType === "branch"){
-        // فرع: نضيف مصفوفة فرعية فارغة
+      let newObj = { title: nodeTitle };
+      if(nodeType === 'branch'){
         newObj.subtopics = [];
-      } else {
-        // محتوى: ننشئ ملفًا له على GitHub (مثال: nodeTitle + random .json)
-        // استدعاء API لإنشاء ملف فارغ ونعيد اسمه
-        let fileName = generateFileName(nodeTitle);
-        let createReq = await fetch('/api/add-file', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ fileName })
-        });
-        let createRes = await createReq.json();
-        if(createRes.success){
-          newObj.dataFile = fileName;
-        } else {
-          alert("Could not create file for content. " + (createRes.error||''));
-          return;
-        }
       }
 
       if(parentVal === 'root'){
+        // add to top-level
         expTopics.topics.push(newObj);
       } else {
-        let { parentArray, indexInArray } = getParentArrayAndIndex(JSON.parse(parentVal));
+        let path = JSON.parse(parentVal);
+        let { parentArray, indexInArray } = getParentArrayAndIndex(path);
         let parentNode = parentArray[indexInArray];
         if(!parentNode.subtopics) parentNode.subtopics = [];
         parentNode.subtopics.push(newObj);
+      }
+
+      // If content => create a file in exp_data
+      if(nodeType === 'content'){
+        let path = (parentVal === 'root') ? [] : JSON.parse(parentVal);
+        let fullPathTitles = getNodePathTitles(expTopics.topics, path).concat([nodeTitle]);
+        let fileName = joinForFileName(fullPathTitles) + '.json'; // e.g. CNS_Anatomy.json
+        let displayTitle = joinForDisplay(fullPathTitles);        // e.g. "CNS - Anatomy"
+
+        let resp = await fetch('/api/add-file', {
+          method: 'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ fileName, customTitle: displayTitle })
+        });
+        let j = await resp.json();
+        if(j.success){
+          newObj.dataFile = j.filePath; // e.g. exp_data/CNS_Anatomy.json
+        } else {
+          alert("Could not create file: " + (j.error||''));
+        }
       }
 
       document.getElementById('newNodeTitle').value = '';
       document.getElementById('newNodeType').value = 'branch';
       renderTopicsTree();
       fillParentSelect();
+      loadContentFileList(); // refresh content list
     }
 
-    // توليد اسم للملف
-    function generateFileName(title){
-      let sanitized = title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '');
-      let randomPart = Math.floor(Math.random()*100000);
-      return `${sanitized}_${randomPart}.json`;
-    }
-
-    // تعبئة القائمة المنسدلة لاختيار الأب
+    /* ==================== Fill parent <select> for adding new nodes ==================== */
     function fillParentSelect(){
       let sel = document.getElementById('parentSelect');
       sel.innerHTML = '';
@@ -679,7 +675,6 @@
       optRoot.textContent = 'Root';
       sel.appendChild(optRoot);
 
-      // نجمع كل المسارات
       if(!expTopics || !expTopics.topics) return;
       expTopics.topics.forEach((topic, i) => {
         addNodePathOption(sel, topic, ['topics', i], '');
@@ -693,72 +688,73 @@
 
       if(node.subtopics && Array.isArray(node.subtopics)){
         node.subtopics.forEach((sub, i) => {
-          let newPath = [...path, 'subtopics', i];
-          addNodePathOption(sel, sub, newPath, prefix + node.title + " > ");
+          addNodePathOption(sel, sub, [...path,'subtopics', i], prefix + node.title + " > ");
         });
       }
     }
 
-    /********************************************************************
-     *                 إدارة المحتوى (files with dataFile)
-     ********************************************************************/
-    let currentContentFile = null;
-    let currentContentSha = null;
-    let originalContentHtml = ''; // للاحتفاظ بالمحتوى الأصلي عند التحميل
-
-    // تعبئة القائمة المحتوية على جميع العقد التي لها dataFile
-    // ملاحظة: يمكن استدعاء هذه الدالة بعد أن يتم تحميل expTopics بنجاح
-    async function loadContentFileList(){
+    /* ==================== Fill contentNodesSelect with all content nodes ==================== */
+    function loadContentFileList(){
       let sel = document.getElementById('contentNodesSelect');
       sel.innerHTML = '<option value="">-- Select Content Node --</option>';
+
       if(!expTopics || !expTopics.topics) return;
-      let allContentNodes = getAllContentNodes(expTopics.topics);
-      allContentNodes.forEach(node => {
+      let allContentNodes = getAllContentNodes(expTopics.topics, []);
+      allContentNodes.forEach( cnode => {
         let opt = document.createElement('option');
-        opt.value = node.dataFile;
-        opt.textContent = getNodeFullPath(node); // مسار كامل مثلاً "Microbiology > Virology > Herpesviruses"
+        opt.value = cnode.dataFile; 
+        opt.textContent = cnode.fullDisplay; // e.g. "CNS - Anatomy"
         sel.appendChild(opt);
       });
     }
-    function getAllContentNodes(nodes){
+    function getAllContentNodes(nodes, path){
       let result = [];
-      nodes.forEach(n => {
+      nodes.forEach((n, i) => {
+        let currentPath = [...path, i];
         if(n.dataFile){
-          result.push(n);
+          // build display
+          let fullTitles = getNodePathTitles(expTopics.topics, buildPathForGetNode(path, i));
+          let displayText = joinForDisplay(fullTitles);
+          result.push({ dataFile: n.dataFile, fullDisplay: displayText });
         }
         if(n.subtopics && Array.isArray(n.subtopics)){
-          result = result.concat(getAllContentNodes(n.subtopics));
+          result = result.concat(getAllContentNodes(n.subtopics, [...path, i, 'subtopics']));
         }
       });
       return result;
     }
-    function getNodeFullPath(node){
-      // أو يمكن ببساطة عرض node.title
-      return node.title || "Untitled";
+    function buildPathForGetNode(par, idx){
+      // par = array of indexes and 'subtopics' strings
+      // we want to rebuild a path like ["topics", 0, "subtopics", 1 ... idx]
+      let out = ["topics"];
+      for(let x of par){
+        if(x==='subtopics' || typeof x === 'number'){
+          out.push(x);
+        }
+      }
+      out.push(idx);
+      return out;
     }
 
-    // استدعاءها بعد تحميل exp_topics
-    // ولكن سنستدعيها مع الضغط على زر Manage Content -> مثلاً عند الضغط loadExpTopics()
-    // يمكن دمجها في النهاية داخل loadExpTopics() بعد نجاح التحميل
+    /* ==================== Load content file (dataFile) ==================== */
     async function loadContentFile(){
       let sel = document.getElementById('contentNodesSelect');
       if(!sel.value){
-        alert("Please select a content node.");
+        alert("Please select a content node");
         return;
       }
-      currentContentFile = sel.value;
+      currentContentFile = sel.value; // e.g. exp_data/CNS_Anatomy.json
       try {
-        let r = await fetch(`/api/get-content-file?filePath=${encodeURIComponent(currentContentFile)}`);
+        let r = await fetch('/api/get-content-file?filePath='+encodeURIComponent(currentContentFile));
         let j = await r.json();
         if(!j.success){
-          alert("Failed to load content: " + (j.error || ''));
+          document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-danger">Failed to load: ${j.error||''}</div>`;
           return;
         }
         currentContentSha = j.sha;
-        let contentObj = j.content; // يفترض أن يكون كائن بالشكل { title: "...", content: "<div>...</div>" }
+        let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
-        // تعبئة المحرر
         document.getElementById('contentEditor').innerHTML = contentObj.content;
         document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-success">Content loaded successfully!</div>`;
       } catch(e){
@@ -767,6 +763,7 @@
       }
     }
 
+    /* ==================== Save content file ==================== */
     async function saveContentChanges(){
       if(!currentContentFile){
         alert("No content file selected.");
@@ -774,8 +771,8 @@
       }
       let confirmSave = await confirm("Are you sure you want to save current content?");
       if(!confirmSave) return;
-      let contentEditor = document.getElementById('contentEditor');
-      let updatedHtml = contentEditor.innerHTML;
+      let updatedHtml = document.getElementById('contentEditor').innerHTML;
+
       let payload = {
         filePath: currentContentFile,
         sha: currentContentSha,
@@ -783,190 +780,31 @@
       };
       try {
         let r = await fetch('/api/save-content-file', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
           body: JSON.stringify(payload)
         });
         let j = await r.json();
         if(j.success){
           alert("Content saved!");
-          // تحديث originalContentHtml
           originalContentHtml = updatedHtml;
-          currentContentSha = j.newSha; // إن عاد بالـSha الجديد
+          if(j.newSha) currentContentSha = j.newSha;
         } else {
-          alert("Save failed: " + (j.error || ''));
+          alert("Save failed: " + (j.error||''));
         }
       } catch(e){
         console.error(e);
-        alert("Error saving content file.");
+        alert("Error saving content file");
       }
     }
 
-    /********************************************************************
-     *          أدوات التحديد في المحرر (نسخ، لصق، تنسيق...)
-     ********************************************************************/
-    let selectedRange = null;
-    document.getElementById('contentEditor').addEventListener('mouseup', () => {
-      // عندما يفلت الفأرة نحصل على التحديد
-      let sel = window.getSelection();
-      if(sel.rangeCount > 0){
-        selectedRange = sel.getRangeAt(0);
-        let txt = sel.toString();
-        let tools = document.getElementById('selectedTextTools');
-        if(txt.length > 0){
-          tools.style.display = 'block';
-        } else {
-          tools.style.display = 'none';
-        }
-      }
-    });
-
-    function copySelectedText(){
-      if(!selectedRange) return;
-      let selText = selectedRange.toString();
-      navigator.clipboard.writeText(selText);
-    }
-    function pasteAtCursor(){
-      navigator.clipboard.readText().then(clipText => {
-        if(selectedRange){
-          selectedRange.deleteContents();
-          let node = document.createTextNode(clipText);
-          selectedRange.insertNode(node);
-        }
-      });
-    }
-    function selectAllContent(){
-      let editor = document.getElementById('contentEditor');
-      let range = document.createRange();
-      range.selectNodeContents(editor);
-      let sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-    function makeBold(){
-      document.execCommand('bold', false);
-    }
-    function makeItalic(){
-      document.execCommand('italic', false);
-    }
-    function addHeading(){
-      document.execCommand('formatBlock', false, 'h3');
-    }
-    function insertBefore(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert before:", "").then(val => {
-        if(val){
-          let div = document.createElement('div');
-          div.innerHTML = val;
-          selectedRange.insertNode(div);
-        }
-      });
-    }
-    function insertAfter(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert after:", "").then(val => {
-        if(val){
-          // نضع العقدة بعد العنصر المحدد
-          selectedRange.collapse(false);
-          let div = document.createElement('div');
-          div.innerHTML = val;
-          selectedRange.insertNode(div);
-        }
-      });
-    }
-    function insertInMiddle(){
-      if(!selectedRange) return;
-      customPrompt("Enter HTML to insert in middle:", "").then(val => {
-        if(val){
-          // أدخل النص في منتصف التحديد
-          let selText = selectedRange.toString();
-          let half = Math.floor(selText.length / 2);
-          let firstPart = selText.slice(0, half);
-          let secondPart = selText.slice(half);
-
-          selectedRange.deleteContents();
-          let frag = document.createDocumentFragment();
-          frag.appendChild(document.createTextNode(firstPart));
-          let div = document.createElement('span');
-          div.innerHTML = val;
-          frag.appendChild(div);
-          frag.appendChild(document.createTextNode(secondPart));
-          selectedRange.insertNode(frag);
-        }
-      });
-    }
-    function removeTag(){
-      document.execCommand('removeFormat', false);
-    }
-    function insertImage(){
-      customPrompt("Enter Image URL (or upload logic can be handled here):", "").then(val => {
-        if(val){
-          let img = `<img src="${val}" style="max-width:100%; height:auto;">`;
-          document.execCommand('insertHTML', false, img);
-        }
-      });
-    }
-    function insertVideo(){
-      customPrompt("Enter video URL:", "").then(val => {
-        if(val){
-          let vid = `<video src="${val}" controls></video>`;
-          document.execCommand('insertHTML', false, vid);
-        }
-      });
-    }
-    function insertIframe(){
-      customPrompt("Enter iFrame embed URL:", "").then(val => {
-        if(val){
-          let iframe = `<iframe src="${val}" style="width:560px; height:315px;"></iframe>`;
-          document.execCommand('insertHTML', false, iframe);
-        }
-      });
-    }
-    function insertLink(){
-      customPrompt("Enter URL:", "").then(url => {
-        if(url){
-          let selText = selectedRange ? selectedRange.toString() : url;
-          let linkHtml = `<a href="${url}" target="_blank">${selText}</a>`;
-          document.execCommand('insertHTML', false, linkHtml);
-        }
-      });
-    }
-    function insertText(){
-      customPrompt("Enter text to insert:", "").then(txt => {
-        if(txt){
-          document.execCommand('insertText', false, txt);
-        }
-      });
-    }
-
+    /* ==================== Preview content ==================== */
     function previewContent(){
-      let editorHtml = document.getElementById('contentEditor').innerHTML;
+      let html = document.getElementById('contentEditor').innerHTML;
       let previewArea = document.getElementById('previewArea');
       let previewContent = document.getElementById('previewContent');
-      previewContent.innerHTML = editorHtml;
+      previewContent.innerHTML = html;
       previewArea.style.display = 'block';
-    }
-
-    // بعد الانتهاء من تحميل expTopics بنجاح، نقوم بتعبئة قائمة المحتوى:
-    // يمكن استدعاؤه في نهاية loadExpTopics()
-    async function loadExpTopics(){
-      try {
-        const res = await fetch('/api/get-exp-topics');
-        const data = await res.json();
-        if(!data.success) {
-          alert("Failed to load exp_topics.json: " + (data.error || ''));
-          return;
-        }
-        expTopics = data.content;
-        topicsSha = data.sha;
-        renderTopicsTree();
-        fillParentSelect();
-        // تعبئة قائمة المحتوى
-        loadContentFileList();
-      } catch(e){
-        console.error(e);
-        alert("Error loading exp_topics.json");
-      }
     }
   </script>
 </body>
