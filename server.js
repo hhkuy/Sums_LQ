@@ -114,7 +114,7 @@ app.post('/api/add-file', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      return res.json({ success: true, filePath: fileName }); // <-- فقط الاسم
+      return res.json({ success: true, filePath: fileName }); 
     } else {
       console.error("add-file error:", j);
       return res.json({ success: false, error: j.message || 'Could not create file' });
@@ -131,7 +131,7 @@ app.delete('/api/delete-file', async (req, res) => {
     const filePath = req.query.filePath; 
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
 
-    const fullPath = filePath; // نفترض أن القادم هو "exp_data/XXX.json" من الواجهة
+    const fullPath = filePath; 
     const sha = await getFileSha(MAIN_REPO_NAME, fullPath);
     if(!sha) {
       console.error("delete-file: file not found or no SHA for", fullPath);
@@ -251,7 +251,6 @@ app.post('/api/upload-image', async (req, res) => {
     const { name, base64 } = req.body;
     if(!name || !base64) return res.json({ success:false, error:'Missing name or base64' });
 
-    // قد نستخدم REPO مختلف مثلاً "Sums_Q_L_Pic" حسب المتغير IMAGES_REPO_NAME
     let extension = name.split('.').pop().toLowerCase();
     if(!['jpg','jpeg','png','gif','webp'].includes(extension)){
       extension = 'png';
@@ -336,7 +335,6 @@ app.post('/api/rename-file', async (req, res) => {
       return res.json({ success:false, error:"File not found or no SHA for oldPath" });
     }
 
-    // جلب المحتوى القديم
     const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const respGet = await fetch(getUrl, { headers: githubHeaders });
     if(respGet.status !== 200){
