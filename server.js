@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const cors = require('cors');
-const path = require('path'); // NEW: لزوم استخدام sendFile
+const path = require('path'); // لإرسال ملف admin.html
 
 const app = express();
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -12,16 +12,15 @@ app.use(cors());
 // اجلب البيانات من متغيرات البيئة
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_USER = process.env.GITHUB_USER;
-const MAIN_REPO_NAME = process.env.MAIN_REPO_NAME;        // مثال: 'Sums_Q'
-const IMAGES_REPO_NAME = process.env.IMAGES_REPO_NAME;    // مثال: 'Sums_Q_L_Pic'
+const MAIN_REPO_NAME = process.env.MAIN_REPO_NAME;
+const IMAGES_REPO_NAME = process.env.IMAGES_REPO_NAME;
 
-// رؤوس التوثيق
 const githubHeaders = {
   'Authorization': `Bearer ${GITHUB_TOKEN}`,
   'Accept': 'application/vnd.github+json'
 };
 
-// ================ مساعدة: جلب SHA لملف على GitHub ================
+// ================ دالة مساعدة لاستخراج SHA ================
 async function getFileSha(repoName, path){
   const url = `https://api.github.com/repos/${GITHUB_USER}/${repoName}/contents/${path}`;
   const res = await fetch(url, { headers: githubHeaders });
@@ -35,8 +34,8 @@ async function getFileSha(repoName, path){
 // ================ 1) جلب exp_topics.json ================
 app.get('/api/get-exp-topics', async (req, res) => {
   try {
-    const path = `exp_data/exp_topics.json`; // مكان الملف
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${path}`;
+    const pathFile = `exp_data/exp_topics.json`; 
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
     const resp = await fetch(url, { headers: githubHeaders });
     if(resp.status !== 200){
       const t = await resp.text();
@@ -56,8 +55,8 @@ app.get('/api/get-exp-topics', async (req, res) => {
 app.post('/api/save-exp-topics', async (req, res) => {
   try {
     const { content, sha } = req.body;
-    const path = `exp_data/exp_topics.json`;
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${path}`;
+    const pathFile = `exp_data/exp_topics.json`;
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
     const encoded = Buffer.from(JSON.stringify(content, null, 2)).toString('base64');
     const body = {
       message: "Update exp_topics.json",
@@ -80,16 +79,16 @@ app.post('/api/save-exp-topics', async (req, res) => {
   }
 });
 
-// ================ 3) إضافة ملف جديد (فارغ) لمحتوى في مجلد exp_data ================
+// ================ 3) إضافة ملف جديد (فارغ) في exp_data ================
 app.post('/api/add-file', async (req, res) => {
   try {
     let { fileName } = req.body;
     if(!fileName) return res.json({ success:false, error: 'No fileName provided.' });
-    const path = `exp_data/${fileName}`;
-    // أنشئ كائن JSON افتراضي
+
+    const pathFile = `exp_data/${fileName}`;
     const defaultJson = { title: fileName.replace('.json',''), content: "" };
     const encoded = Buffer.from(JSON.stringify(defaultJson, null, 2)).toString('base64');
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${path}`;
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${pathFile}`;
     let body = {
       message: `Create new file: ${fileName}`,
       content: encoded
@@ -101,7 +100,7 @@ app.post('/api/add-file', async (req, res) => {
     });
     let j = await resp.json();
     if(j.content){
-      return res.json({ success: true, filePath: path });
+      return res.json({ success: true, filePath: pathFile });
     } else {
       return res.json({ success: false, error: j.message || 'Could not create file' });
     }
@@ -173,14 +172,11 @@ app.post('/api/save-content-file', async (req, res) => {
     let { filePath, sha, newContent } = req.body;
     if(!filePath || !sha) return res.json({ success:false, error:'Missing filePath or sha' });
 
-    // جلب المحتوى القديم لمعرفة الشكل
     let oldSha = await getFileSha(MAIN_REPO_NAME, filePath);
     if(oldSha !== sha){
-      // ربما تغير الملف في GitHub!
       console.warn("Possible conflict - SHA mismatch");
     }
 
-    // نفترض أن الملف يحتوي كائن JSON في الشكل { title, content }
     const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
@@ -194,10 +190,9 @@ app.post('/api/save-content-file', async (req, res) => {
     } catch(e){
       parsedOld = { content: oldContent };
     }
-    // حدث حقل content
+    // حدِّث حقل content
     parsedOld.content = newContent;
 
-    // الآن احفظ
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
     const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
     const putBody = {
@@ -222,7 +217,7 @@ app.post('/api/save-content-file', async (req, res) => {
   }
 });
 
-// ================ 7) رفع صورة إلى مستودع الصور (IMAGES_REPO_NAME) ================
+// ================ 7) رفع صورة إلى مستودع الصور ================
 app.post('/api/upload-image', async (req, res) => {
   try {
     let { name, base64 } = req.body;
@@ -233,15 +228,15 @@ app.post('/api/upload-image', async (req, res) => {
       extension = 'png';
     }
     let newFileName = Date.now() + '.' + extension;
-    let path = `pic/${newFileName}`; // داخل مجلد pic في مستودع الصور
+    let pathFile = `pic/${newFileName}`;
 
-    let fileSha = await getFileSha(IMAGES_REPO_NAME, path);
+    let fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
     if(fileSha){
       newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
-      path = `pic/${newFileName}`;
+      pathFile = `pic/${newFileName}`;
     }
 
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${path}`;
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${pathFile}`;
     const body = {
       message: `Upload image ${newFileName}`,
       content: base64
@@ -267,10 +262,11 @@ app.post('/api/upload-image', async (req, res) => {
 // ================ 8) حذف صورة من مستودع الصور ================
 app.delete('/api/delete-image', async (req, res) => {
   try {
-    let filePath = req.query.filePath; // pic/xxx.png
+    let filePath = req.query.filePath;
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
     let sha = await getFileSha(IMAGES_REPO_NAME, filePath);
-    if(!sha) return res.json({ success:false, error:'File not found in images repo or no SHA.' });
+    if(!sha) return res.json({ success:false, error:'Image not found or no SHA.' });
+
     let url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${filePath}`;
     let body = {
       message: `Delete image: ${filePath}`,
@@ -291,17 +287,17 @@ app.delete('/api/delete-image', async (req, res) => {
     console.error(e);
     return res.json({ success:false, error:e.toString() });
   }
-});
+}
 
-// NEW: serve admin.html at root to fix "Cannot GET /"
-app.get('/', (req, res) => {
+// ========== تقديم الملفات الساكنة من نفس المجلد (ومن ضمنها admin.html) ==========
+app.use(express.static(__dirname));
+
+// ========== مسار احتياطي (Fallback) لأي طلب آخر يعيد admin.html ==========
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// serve admin.html + أي ملفات ثابتة
-app.use(express.static(__dirname));
-
-// افتراضي: استمع على بورت 3000 محليًا
+// بدء الاستماع
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log("Server listening on port " + port);
