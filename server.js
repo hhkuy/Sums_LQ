@@ -9,7 +9,7 @@ const app = express();
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(cors());
 
-// يطبع القيم للتحقق من توفرها (يمكن حذف console.log لاحقًا)
+// يطبع القيم للتحقق من توفرها
 console.log("GITHUB_TOKEN:", process.env.GITHUB_TOKEN ? "EXISTS" : "MISSING!");
 console.log("GITHUB_USER:", process.env.GITHUB_USER);
 console.log("MAIN_REPO_NAME:", process.env.MAIN_REPO_NAME);
@@ -37,6 +37,8 @@ async function getFileSha(repoName, filePath){
   }
   return null;
 }
+
+/** =============== مسارات الـ API =============== */
 
 /** 1) جلب exp_topics.json */
 app.get('/api/get-exp-topics', async (req, res) => {
@@ -96,7 +98,6 @@ app.post('/api/add-file', async (req, res) => {
     if(!fileName) return res.json({ success:false, error:'No fileName provided.' });
 
     const pathFile = `exp_data/${fileName}`;
-    // لو عندنا title جاهز من الواجهة
     const defaultTitle = newJsonTitle || fileName.replace('.json','');
     const defaultJson = { title: defaultTitle, content: "" };
     const encoded = Buffer.from(JSON.stringify(defaultJson, null, 2)).toString('base64');
@@ -113,7 +114,7 @@ app.post('/api/add-file', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      return res.json({ success: true, filePath: pathFile });
+      return res.json({ success: true, filePath: fileName }); // <-- فقط الاسم
     } else {
       console.error("add-file error:", j);
       return res.json({ success: false, error: j.message || 'Could not create file' });
@@ -127,18 +128,19 @@ app.post('/api/add-file', async (req, res) => {
 /** 4) حذف ملف من المستودع الرئيسي */
 app.delete('/api/delete-file', async (req, res) => {
   try {
-    const filePath = req.query.filePath;
+    const filePath = req.query.filePath; 
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
 
-    const sha = await getFileSha(MAIN_REPO_NAME, filePath);
+    const fullPath = filePath; // نفترض أن القادم هو "exp_data/XXX.json" من الواجهة
+    const sha = await getFileSha(MAIN_REPO_NAME, fullPath);
     if(!sha) {
-      console.error("delete-file: file not found or no SHA for", filePath);
+      console.error("delete-file: file not found or no SHA for", fullPath);
       return res.json({ success:false, error:'File not found or no SHA.' });
     }
 
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const body = {
-      message: `Delete file: ${filePath}`,
+      message: `Delete file: ${fullPath}`,
       sha: sha
     };
     const resp = await fetch(url, {
@@ -162,10 +164,11 @@ app.delete('/api/delete-file', async (req, res) => {
 /** 5) جلب ملف محتوى (dataFile) */
 app.get('/api/get-content-file', async (req, res) => {
   try {
-    const filePath = req.query.filePath;
-    if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
+    const shortFilePath = req.query.filePath;
+    if(!shortFilePath) return res.json({ success:false, error:'No filePath provided.' });
+    const fullPath = `exp_data/${shortFilePath}`;
 
-    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const resp = await fetch(url, { headers: githubHeaders });
     if(resp.status !== 200){
       const t = await resp.text();
@@ -193,14 +196,14 @@ app.post('/api/save-content-file', async (req, res) => {
     const { filePath, sha, newContent } = req.body;
     if(!filePath || !sha) return res.json({ success:false, error:'Missing filePath or sha' });
 
-    // تحقق من SHA للملف على GitHub
-    const oldSha = await getFileSha(MAIN_REPO_NAME, filePath);
+    const fullPath = `exp_data/${filePath}`;
+    const oldSha = await getFileSha(MAIN_REPO_NAME, fullPath);
     if(oldSha && oldSha !== sha){
-      console.warn("Possible conflict - local sha != remote sha for", filePath);
+      console.warn("Possible conflict - local sha != remote sha for", fullPath);
     }
 
-    // اجلب المحتوى القديم
-    const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
+    // جلب القديم
+    const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
       console.error("save-content-file: can't read old content", await respGet.text());
@@ -215,14 +218,12 @@ app.post('/api/save-content-file', async (req, res) => {
     } catch(e){
       parsedOld = { content: oldContent };
     }
-    // حدِّث الحقل
     parsedOld.content = newContent;
 
-    // ارفع المحتوى
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
-    const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${filePath}`;
+    const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const putBody = {
-      message: `Update content file: ${filePath}`,
+      message: `Update content file: ${fullPath}`,
       content: updatedBase64,
       sha: getJson.sha
     };
@@ -250,6 +251,7 @@ app.post('/api/upload-image', async (req, res) => {
     const { name, base64 } = req.body;
     if(!name || !base64) return res.json({ success:false, error:'Missing name or base64' });
 
+    // قد نستخدم REPO مختلف مثلاً "Sums_Q_L_Pic" حسب المتغير IMAGES_REPO_NAME
     let extension = name.split('.').pop().toLowerCase();
     if(!['jpg','jpeg','png','gif','webp'].includes(extension)){
       extension = 'png';
@@ -257,7 +259,6 @@ app.post('/api/upload-image', async (req, res) => {
     let newFileName = Date.now() + '.' + extension;
     let pathFile = `pic/${newFileName}`;
 
-    // تأكد ألا يكون اسم الملف موجودًا
     const fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
     if(fileSha){
       newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
@@ -330,14 +331,13 @@ app.post('/api/rename-file', async (req, res) => {
       return res.json({ success:false, error:"Missing oldPath or newPath" });
     }
 
-    // نجلب الـ SHA
-    const sha = await getFileSha(MAIN_REPO_NAME, oldPath);
+    const sha = await getFileSha(MAIN_REPO_NAME, "exp_data/"+oldPath);
     if(!sha){
       return res.json({ success:false, error:"File not found or no SHA for oldPath" });
     }
 
-    // نجلب المحتوى القديم
-    const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${oldPath}`;
+    // جلب المحتوى القديم
+    const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const respGet = await fetch(getUrl, { headers: githubHeaders });
     if(respGet.status !== 200){
       const t = await respGet.text();
@@ -352,19 +352,16 @@ app.post('/api/rename-file', async (req, res) => {
     } catch(e){
       parsedOld = { content: oldDecoded };
     }
-
-    // نحدث حقل title إذا لدينا newTitle
     if(newTitle){
       parsedOld.title = newTitle;
     }
 
-    // الآن نرفع باستخدام PUT مع المسار الجديد
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
-    const putUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${oldPath}`;
+    const putUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const putBody = {
       message: `Rename file to ${newPath}`,
       content: updatedBase64,
-      sha: sha,
+      sha: getJ.sha,
       path: newPath
     };
     const respPut = await fetch(putUrl, {
@@ -377,7 +374,6 @@ app.post('/api/rename-file', async (req, res) => {
       console.error("rename-file put error:", putJson);
       return res.json({ success:false, error:putJson.message || 'Could not rename file' });
     }
-    // نجح
     return res.json({ success:true });
   } catch(e){
     console.error("rename-file exception:", e);
