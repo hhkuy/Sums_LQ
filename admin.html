@@ -7,12 +7,12 @@
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <!-- Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <!-- مكتبة Marked.js لتحويل Markdown إلى HTML -->
+  <!-- Marked.js -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- مكتبة Turndown.js لتحويل HTML إلى Markdown عند التحميل -->
+  <!-- Turndown.js -->
   <script src="https://cdn.jsdelivr.net/npm/turndown/dist/turndown.js"></script>
   <style>
     body {
@@ -76,7 +76,7 @@
       border-left: 2px dashed #ccc;
       padding-left: 10px;
     }
-    /* محرر الماركداون + عرض النتيجة */
+    /* Markdown editor */
     #markdown-input {
       border-radius: 15px;
       overflow: auto;
@@ -96,13 +96,7 @@
       border: 1px solid #ddd;
       min-height: 200px;
     }
-    /* تباعد بين الأزرار العائمة */
-    #floatManageTriggersBtn,
-    #floatToolsBtn,
-    #floatScrollBtn {
-      margin-bottom: 15px;
-    }
-    /* زر تعديل/حذف الأدوات المدخلة */
+    /* Floating buttons */
     #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
@@ -111,19 +105,16 @@
       color: #fff;
       border: none;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
-      top: 40%;
+      top: 50%;
       right: 30px;
+      transform: translateY(-160%);
     }
     #floatManageTriggersBtn:hover {
       opacity: 0.8;
     }
-    /* زر الأدوات العائم (للـ triggers وغيرها) */
     #floatToolsBtn {
       position: fixed;
       width: 50px;
@@ -132,19 +123,16 @@
       color: #fff;
       border: none;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
       top: 50%;
       right: 30px;
+      transform: translateY(-50%);
     }
     #floatToolsBtn:hover {
       opacity: 0.8;
     }
-    /* زر التمرير */
     #floatScrollBtn {
       position: fixed;
       width: 50px;
@@ -153,19 +141,16 @@
       color: #fff;
       border: none;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
-      top: 60%;
+      top: 50%;
       right: 30px;
+      transform: translateY(60%);
     }
     #floatScrollBtn:hover {
       opacity: 0.8;
     }
-
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -207,27 +192,44 @@
     .alert-success {
       margin-top: 10px;
     }
+    /* selection */
     .selection-guides {
       position: absolute;
       border: 2px dashed red;
       pointer-events: none;
       display: none;
     }
-    /* التلوين لأنواع الـ triggers */
-    .trigger-link {
-      color: blue;
+    /* message above convert */
+    #selectionDonePrompt {
+      display: none;
+      margin-top: 10px;
+      text-align: center;
     }
-    .trigger-video {
-      color: darkgreen;
+    /* تلوين النص بألوان مختلفة عند ظهور triggers في الماركداون */
+    .tools-triggered-Q {
+      color: #b03060; /* QIDs example color */
+      font-weight: bold;
     }
-    .trigger-iframe {
-      color: purple;
+    .tools-triggered-L {
+      color: #007bff; /* link example color */
+      font-weight: bold;
     }
-    .trigger-qids {
-      color: orange;
+    .tools-triggered-VI {
+      color: #ff1493; /* video color */
+      font-weight: bold;
     }
-    .trigger-text {
-      color: brown;
+    .tools-triggered-IF {
+      color: #8b008b; /* iframe color */
+      font-weight: bold;
+    }
+    .tools-triggered-TX {
+      color: #FF4500; /* custom text color */
+      font-weight: bold;
+    }
+    /* multi triggers color (example) */
+    .tools-triggered-MT {
+      color: #FF8C00;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -244,48 +246,39 @@
         </div>
 
         <div id="topicsTree"></div>
-
         <hr>
-
-        <!-- Add New Topic/Subtopic Form -->
         <div class="row g-2 align-items-center">
           <div class="col-md-4">
             <input type="text" id="newNodeTitle" class="form-control" placeholder="Title...">
           </div>
           <div class="col-md-4">
-            <!-- اختيار إن كان فرع (Branch) أم محتوى (Content) -->
             <select id="newNodeType" class="form-select">
               <option value="branch">Branch</option>
               <option value="content">Content</option>
             </select>
           </div>
           <div class="col-md-4">
-            <!-- زر إضافة الموضوع/الفرع/المحتوى -->
             <button class="btn btn-success btn-custom" onclick="addNode()">Add Node</button>
           </div>
         </div>
-
-        <!-- اختيار المكان الذي نضيفه تحته (جذر أم داخل أحدهم) -->
         <div class="row g-2 mt-3 align-items-center">
           <div class="col-md-12">
             <label>Select where to add:</label>
             <select id="parentSelect" class="form-select"></select>
           </div>
         </div>
-
         <hr>
         <div class="mt-3">
           <button class="btn btn-primary btn-custom" onclick="saveExpTopics()">Save All Changes</button>
         </div>
       </div>
     </div>
-    <!-- END Manage Topics Section -->
+    <!-- END Manage Topics -->
 
     <!-- Manage Content Section -->
     <div class="card card-section">
       <div class="card-header">Manage Content (files with dataFile)</div>
       <div class="card-body">
-        <!-- Dropdown لاختيار العقد التي تم تعريفها كمحتوى فقط -->
         <div class="mb-3">
           <select id="contentNodesSelect" class="form-select">
             <option value="">-- Select Content Node --</option>
@@ -295,28 +288,28 @@
           <button class="btn btn-primary btn-custom" onclick="loadContentFile()">Load Content File</button>
         </div>
         <div id="contentLoadMsg"></div>
-
         <hr>
-
-        <!-- محرر الماركداون -->
         <label for="markdown-input" class="form-label">Markdown Editor (drag to scroll):</label>
         <textarea class="form-control" id="markdown-input"></textarea>
 
-        <!-- زر واحد لتحويل -->
+        <!-- message above convert -->
+        <div id="selectionDonePrompt">
+          <div class="bg-light p-3 border rounded">
+            <span>Finished text selection?</span>
+            <button class="btn btn-sm btn-success ms-2" onclick="selectionDoneYes()">Yes</button>
+            <button class="btn btn-sm btn-danger ms-2" onclick="selectionDoneNo()">No</button>
+          </div>
+        </div>
+
         <div class="row g-2 mt-2">
           <div class="col-md-12">
-            <button class="btn btn-primary w-100 btn-custom" onclick="convertMarkdownWithAlert()">
+            <button class="btn btn-primary w-100 btn-custom" onclick="doConvertMarkdown()">
               <i class="bi bi-arrow-left-right"></i> Convert
             </button>
           </div>
         </div>
-
-        <!-- منطقة عرض النتيجة -->
         <div id="markdown-result" style="direction: ltr; margin-top:20px;"></div>
-
         <hr>
-
-        <!-- زر حفظ & زر طباعة -->
         <div class="row g-2">
           <div class="col-md-6">
             <button class="btn btn-info btn-custom" onclick="printResult()">Print / PDF</button>
@@ -329,14 +322,12 @@
     </div>
   </div>
 
-  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
+  <!-- Floating buttons -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
-  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
   <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
-  <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
-  <!-- نظام النوافذ المنبثقة (modal) -->
+  <!-- Overlays/Modals -->
   <div class="modal-overlay" id="alertOverlay">
     <div class="modal-box">
       <h3 id="alertMsg"></h3>
@@ -365,7 +356,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers -->
+  <!-- Tools & Triggers Modal -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
@@ -375,6 +366,7 @@
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('iframe')">Add iFrame</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('qids')">Add Q-ID(s)</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('text')">Add Custom Text/Tag</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerForm('multi')">Add Multi Tools</button>
         <button class="btn btn-outline-secondary" onclick="openImageUploader()">Upload Image(s)</button>
       </div>
       <div class="modal-buttons mt-2">
@@ -383,7 +375,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (تعديل/حذف/إعادة ترتيب) -->
+  <!-- Manage Triggers Overlay -->
   <div class="modal-overlay" id="manageTriggersOverlay">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
@@ -394,7 +386,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد -->
+  <!-- Trigger Form Overlay -->
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
@@ -405,12 +397,11 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لرفع الصور -->
+  <!-- Image Uploader -->
   <div class="modal-overlay" id="imageUploadOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3>Upload or Insert Image</h3>
       <div>
-        <!-- اختيار صورة من الجهاز -->
         <label class="form-label">Upload from device:</label>
         <input type="file" id="localImageFile" class="form-control" multiple>
         <button class="btn btn-success w-100 mt-2" onclick="uploadLocalImages()">Upload Selected</button>
@@ -420,13 +411,11 @@
           </div>
         </div>
         <hr>
-        <!-- أو إدخال رابط صورة مباشر -->
         <label class="form-label">Or use image link:</label>
         <input type="text" id="imageLinkInput" class="form-control" placeholder="https://...">
         <button class="btn btn-primary w-100 mt-2" onclick="insertImageLink()">Insert Link</button>
       </div>
       <hr>
-      <!-- قائمة الصور المرفوعة مع زر الحذف -->
       <div>
         <h5>Uploaded Images:</h5>
         <ul class="uploaded-images-list" id="uploadedImagesList"></ul>
@@ -439,12 +428,13 @@
 
   <div class="selection-guides" id="selectionBox"></div>
 
-  <!-- Bootstrap 5 JS Bundle -->
+  <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
+  <!-- Main Script -->
   <script>
     /****
-     *            نظام النوافذ المنبثقة (Alert, Confirm, Prompt)
+     * ================ 1) Alerts / Confirms / Prompts Overridden  ================
      ****/
     let alertOverlay = document.getElementById('alertOverlay');
     let alertMsg = document.getElementById('alertMsg');
@@ -501,14 +491,12 @@
         };
       });
     }
-
-    // استبدال دوال alert/confirm/prompt الافتراضية:
     window.alert = async function(msg) { await customAlert(msg); };
     window.confirm = async function(msg) { return customConfirm(msg); };
     window.prompt = async function(msg, defVal) { return customPrompt(msg, defVal); };
 
     /****
-     *  تفعيل السحب داخل الـ textarea للتمرير
+     * ================ 2) Drag to scroll in the textarea  ================
      ****/
     (function enableDragScroll(){
       const mdInput = document.getElementById('markdown-input');
@@ -529,6 +517,9 @@
       });
     })();
 
+    /****
+     * ================ 3) Scroll Button  ================
+     ****/
     let scrollDown = true;
     function toggleScroll(){
       const btn = document.getElementById('floatScrollBtn');
@@ -544,7 +535,7 @@
     }
 
     /****
-     *                 إدارة exp_topics.json
+     * ================ 4) Manage exp_topics.json (no changes)  ================
      ****/
     let expTopics = null;   
     let topicsSha = null;   
@@ -568,7 +559,6 @@
         alert("Error loading exp_topics.json");
       }
     }
-
     async function saveExpTopics(){
       if(!expTopics){
         alert("No data loaded yet.");
@@ -577,10 +567,7 @@
       let confirmSave = await confirm("Are you sure you want to save changes to exp_topics.json?");
       if(!confirmSave) return;
       try {
-        let body = {
-          content: expTopics,
-          sha: topicsSha
-        };
+        let body = { content: expTopics, sha: topicsSha };
         const res = await fetch('/api/save-exp-topics', {
           method: 'POST',
           headers: { 'Content-Type':'application/json' },
@@ -597,7 +584,6 @@
         alert("Error saving topics.");
       }
     }
-
     function renderTopicsTree(){
       const treeContainer = document.getElementById('topicsTree');
       treeContainer.innerHTML = '';
@@ -608,7 +594,6 @@
         treeContainer.appendChild(node);
       });
     }
-
     function createNodeElement(nodeObj, path, level){
       let div = document.createElement('div');
       div.className = "topic-node";
@@ -622,26 +607,22 @@
       btnGroup.className = "btn-group-sm";
 
       let upBtn = document.createElement('button');
-      upBtn.className = "btn btn-secondary";
-      upBtn.textContent = "▲";
+      upBtn.className = "btn btn-secondary"; upBtn.textContent = "▲";
       upBtn.onclick = () => moveNodeUp(path);
       btnGroup.appendChild(upBtn);
 
       let downBtn = document.createElement('button');
-      downBtn.className = "btn btn-secondary";
-      downBtn.textContent = "▼";
+      downBtn.className = "btn btn-secondary"; downBtn.textContent = "▼";
       downBtn.onclick = () => moveNodeDown(path);
       btnGroup.appendChild(downBtn);
 
       let editBtn = document.createElement('button');
-      editBtn.className = "btn btn-warning";
-      editBtn.textContent = "Edit";
+      editBtn.className = "btn btn-warning"; editBtn.textContent = "Edit";
       editBtn.onclick = () => editNodeTitle(path);
       btnGroup.appendChild(editBtn);
 
       let delBtn = document.createElement('button');
-      delBtn.className = "btn btn-danger";
-      delBtn.textContent = "Delete";
+      delBtn.className = "btn btn-danger"; delBtn.textContent = "Delete";
       delBtn.onclick = () => deleteNode(path);
       btnGroup.appendChild(delBtn);
 
@@ -660,7 +641,6 @@
       }
       return div;
     }
-
     function moveNodeUp(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       if(indexInArray > 0){
@@ -691,7 +671,6 @@
       let indexInArray = path[path.length - 1];
       return { parentArray: parentRef, indexInArray };
     }
-
     async function editNodeTitle(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
@@ -699,17 +678,16 @@
       let newTitle = await prompt("Enter new title:", oldTitle);
       if(newTitle !== null){
         newTitle = newTitle.trim();
-        if(newTitle === "") return;
+        if(newTitle==="") return;
         node.title = newTitle;
         if(node.dataFile){
-          await renameContentFile(path, node); 
+          await renameContentFile(path, node);
         }
         renderTopicsTree();
         fillParentSelect();
         loadContentFileList();
       }
     }
-
     function getTitlesChain(path){
       let chain = [];
       function recurse(nodeList, currentPath){
@@ -751,25 +729,18 @@
     }
     async function renameContentFile(path, node){
       try {
-        let oldPath = node.dataFile; 
+        let oldPath = node.dataFile;
         let parentPath = path.slice(0, -1);
         let newFileName = "";
-
-        let chainForParent = getTitlesChain(parentPath.slice(0, -1)); 
+        let chainForParent = getTitlesChain(parentPath.slice(0, -1));
         let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
         let childPart = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
-        if(parentChain){
-          newFileName = parentChain + "_" + childPart + ".json";
-        } else {
-          newFileName = childPart + ".json";
-        }
+        if(parentChain) newFileName = parentChain + "_" + childPart + ".json";
+        else newFileName = childPart + ".json";
 
-        let body = { 
-          oldPath, 
-          newPath: "exp_data/" + newFileName
-        };
+        let body = { oldPath, newPath: "exp_data/" + newFileName };
         let fullChain = getTitlesChain(path);
-        if(fullChain.length > 1){
+        if(fullChain.length>1){
           let newTitleStr = fullChain.join(" - ");
           body.newTitle = newTitleStr;
         } else {
@@ -783,30 +754,25 @@
         });
         let renameRes = await renameReq.json();
         if(!renameRes.success){
-          await alert("Could not rename file: " + (renameRes.error || ''));
+          await alert("Could not rename file: "+(renameRes.error||''));
           return;
         }
         node.dataFile = newFileName;
       } catch(e){
         console.error(e);
-        alert("Error in renameContentFile: " + e.toString());
+        alert("Error in renameContentFile: "+e.toString());
       }
     }
-
     async function deleteNode(path){
       let { parentArray, indexInArray } = getParentArrayAndIndex(path);
       let node = parentArray[indexInArray];
-
       if(node.dataFile){
         let confirmDel = await confirm("This is a content node. Deleting will also remove its file from GitHub. Proceed?");
         if(!confirmDel) return;
-        await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+node.dataFile)}`, {
-          method: 'DELETE'
-        }).then(r => r.json()).then(resp => {
-          if(!resp.success){
-            console.warn("Could not delete file from GitHub:", resp.error);
-          }
-        }).catch(err => console.error(err));
+        await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+node.dataFile)}`, {method:'DELETE'})
+          .then(r=>r.json()).then(resp=>{
+            if(!resp.success) console.warn("Could not delete file from GitHub:", resp.error);
+          }).catch(err=>console.error(err));
       } else {
         let confirmDel = await confirm("Delete this branch (and all sub-branches)?");
         if(!confirmDel) return;
@@ -817,210 +783,111 @@
       fillParentSelect();
       loadContentFileList();
     }
-
     async function deleteNestedDataFiles(node){
       if(!node) return;
       if(node.subtopics && Array.isArray(node.subtopics)){
         for(let st of node.subtopics){
           if(st.dataFile){
-            await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+st.dataFile)}`, { method: 'DELETE' })
+            await fetch(`/api/delete-file?filePath=${encodeURIComponent("exp_data/"+st.dataFile)}`,{method:'DELETE'})
               .then(r=>r.json()).then(resp=>{
-                if(!resp.success){
-                  console.warn("Could not delete file from GitHub (nested):", resp.error);
-                }
+                if(!resp.success) console.warn("Could not delete file from GitHub (nested):", resp.error);
               }).catch(err=>console.error(err));
           }
-          if(st.subtopics){
-            await deleteNestedDataFiles(st);
-          }
+          if(st.subtopics) await deleteNestedDataFiles(st);
         }
       }
     }
-
     async function addNode(){
-      if(!expTopics) {
-        alert("Load exp_topics.json first!");
-        return;
-      }
+      if(!expTopics) { alert("Load exp_topics.json first!"); return; }
       let nodeTitle = document.getElementById('newNodeTitle').value.trim();
       if(!nodeTitle){
         alert("Please enter a title.");
         return;
       }
-      let nodeType = document.getElementById('newNodeType').value; 
+      let nodeType = document.getElementById('newNodeType').value;
       let parentVal = document.getElementById('parentSelect').value;
       let newObj = { title: nodeTitle };
 
-      if(nodeType === "branch"){
+      if(nodeType==="branch"){
         newObj.subtopics = [];
       } else {
-        let fileName = generateFileNameForContent(parentVal, nodeTitle);
-        let newJsonTitle = generateTitleFieldForContent(parentVal, nodeTitle);
-
-        let createReq = await fetch('/api/add-file', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ fileName, newJsonTitle })
+        let fileName = generateFileNameForContent(parentVal,nodeTitle);
+        let newJsonTitle = generateTitleFieldForContent(parentVal,nodeTitle);
+        let createReq = await fetch('/api/add-file',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({fileName,newJsonTitle})
         });
         let createRes = await createReq.json();
         if(createRes.success){
-          newObj.dataFile = fileName; 
+          newObj.dataFile = fileName;
         } else {
-          alert("Could not create file for content. " + (createRes.error||''));
+          alert("Could not create file for content. "+(createRes.error||''));
           return;
         }
       }
 
-      if(parentVal === 'root'){
-        expTopics.topics.push(newObj);
-      } else {
-        let { parentArray, indexInArray } = getParentArrayAndIndex(JSON.parse(parentVal));
+      if(parentVal==='root') expTopics.topics.push(newObj);
+      else {
+        let {parentArray,indexInArray} = getParentArrayAndIndex(JSON.parse(parentVal));
         let parentNode = parentArray[indexInArray];
-        if(!parentNode.subtopics) parentNode.subtopics = [];
+        if(!parentNode.subtopics) parentNode.subtopics=[];
         parentNode.subtopics.push(newObj);
       }
-
       document.getElementById('newNodeTitle').value = '';
       document.getElementById('newNodeType').value = 'branch';
-      renderTopicsTree();
-      fillParentSelect();
-      loadContentFileList();
+      renderTopicsTree(); fillParentSelect(); loadContentFileList();
 
-      if(nodeType === "content" && newObj.dataFile){
+      if(nodeType==='content' && newObj.dataFile){
         let sel = document.getElementById('contentNodesSelect');
         sel.value = newObj.dataFile;
         await loadContentFile();
       }
     }
 
-    function generateFileNameForContent(path, newTitle){
-      if(path === 'root'){
-        let fn = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
-        return fn + ".json";
-      } else {
-        let realPath = JSON.parse(path);
-        let chainTitles = getTitlesChain(realPath);
-        let parentChain = chainTitles.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
-        let childPart = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
-        let finalName = "";
-        if(parentChain){
-          finalName = parentChain + "_" + childPart + ".json";
-        } else {
-          finalName = childPart + ".json";
-        }
-        return finalName;
-      }
-    }
-    function generateTitleFieldForContent(path, newTitle){
-      if(path === 'root'){
-        return newTitle; 
-      } else {
-        let realPath = JSON.parse(path);
-        let chainTitles = getTitlesChain(realPath); 
-        if(chainTitles.length > 0){
-          return chainTitles.join(" - ") + " - " + newTitle;
-        } else {
-          return newTitle;
-        }
-      }
-    }
-    function fillParentSelect(){
-      let sel = document.getElementById('parentSelect');
-      sel.innerHTML = '';
-      let optRoot = document.createElement('option');
-      optRoot.value = 'root';
-      optRoot.textContent = 'Root';
-      sel.appendChild(optRoot);
-
-      if(!expTopics || !expTopics.topics) return;
-      expTopics.topics.forEach((topic, i) => {
-        addNodePathOption(sel, topic, JSON.stringify(['topics', i]), '');
-      });
-    }
-    function addNodePathOption(sel, node, path, prefix){
-      let opt = document.createElement('option');
-      opt.value = path;
-      opt.textContent = prefix + node.title;
-      sel.appendChild(opt);
-      if(node.subtopics && Array.isArray(node.subtopics)){
-        node.subtopics.forEach((sub, i) => {
-          let newPath = JSON.stringify([...JSON.parse(path), 'subtopics', i]);
-          addNodePathOption(sel, sub, newPath, prefix + node.title + " > ");
-        });
-      }
-    }
-
     /****
-     *                 إدارة المحتوى
+     * ================ 5) Manage Content ================
      ****/
     let currentContentFile = null;
     let currentContentSha = null;
     let originalContentHtml = '';
 
-    function collectContentNodes(nodes, prefix){
-      let result = [];
-      for(let i=0; i<nodes.length; i++){
-        let n = nodes[i];
-        let currentPrefix = prefix ? (prefix + " > " + n.title) : n.title;
-        if(n.dataFile){
-          result.push({
-            file: n.dataFile,
-            fullPath: currentPrefix
-          });
-        }
-        if(n.subtopics && n.subtopics.length>0){
-          result = result.concat(collectContentNodes(n.subtopics, currentPrefix));
-        }
-      }
-      return result;
-    }
     function loadContentFileList(){
       let sel = document.getElementById('contentNodesSelect');
       sel.innerHTML = '<option value="">-- Select Content Node --</option>';
       if(!expTopics || !expTopics.topics) return;
       let all = collectContentNodes(expTopics.topics, "");
-      all.forEach(obj => {
+      all.forEach(obj=>{
         let opt = document.createElement('option');
         opt.value = obj.file;
         opt.textContent = obj.fullPath;
         sel.appendChild(opt);
       });
     }
-
     async function loadContentFile(){
       let sel = document.getElementById('contentNodesSelect');
-      if(!sel.value){
-        alert("Please select a content node.");
-        return;
-      }
+      if(!sel.value){ alert("Please select a content node."); return; }
       currentContentFile = sel.value;
       try {
-        let r = await fetch(`/api/get-content-file?filePath=${encodeURIComponent(currentContentFile)}`);
-        let j = await r.json();
-        if(!j.success){
-          alert("Failed to load content: " + (j.error || ''));
-          return;
-        }
+        let r=await fetch(`/api/get-content-file?filePath=${encodeURIComponent(currentContentFile)}`);
+        let j=await r.json();
+        if(!j.success){ alert("Failed to load content: "+(j.error||'')); return; }
         currentContentSha = j.sha;
-        let contentObj = j.content;
+        let contentObj = j.content||{};
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
-        
-        let turndownService = new TurndownService();
-        let md = turndownService.turndown(contentObj.content);
+
+        // 1) parse it for triggers, 2) produce markdown with T-X-... placeholders
+        let md = convertHtmlToMarkdownWithTriggers(contentObj.content);
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
 
-        document.getElementById('contentLoadMsg').innerHTML =
+        document.getElementById('contentLoadMsg').innerHTML=
           `<div class="alert alert-success">Content loaded successfully!</div>`;
-        
-        await alert("تم تحميل ملف المحتوى بنجاح، والمحتوى " + (contentObj.content ? "غير فارغ." : "فارغ."));
+        alert("تم تحميل ملف المحتوى بنجاح، والمحتوى "+(contentObj.content?"غير فارغ.":"فارغ."));
       } catch(e){
-        console.error(e);
-        alert("Error loading content file");
+        console.error(e); alert("Error loading content file");
       }
     }
-
     async function saveContentChanges(){
       if(!currentContentFile){
         alert("No content file selected.");
@@ -1029,24 +896,19 @@
       let confirmSave = await confirm("Are you sure you want to save current content?");
       if(!confirmSave) return;
       let finalHtml = document.getElementById('markdown-result').innerHTML;
-      let payload = {
-        filePath: currentContentFile,
-        sha: currentContentSha,
-        newContent: finalHtml
-      };
+      let payload={ filePath: currentContentFile, sha: currentContentSha, newContent: finalHtml };
       try {
-        let r = await fetch('/api/save-content-file', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
+        let r=await fetch('/api/save-content-file',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
         });
-        let j = await r.json();
+        let j=await r.json();
         if(j.success){
           alert("Content saved!");
-          originalContentHtml = finalHtml;
-          currentContentSha = j.newSha; 
+          originalContentHtml=finalHtml;
+          currentContentSha=j.newSha;
         } else {
-          alert("Save failed: " + (j.error || ''));
+          alert("Save failed: "+(j.error||''));
         }
       } catch(e){
         console.error(e);
@@ -1055,63 +917,54 @@
     }
 
     /****
-     *   محرر الماركداون
+     * ================ 6) Convert Markdown ================
      ****/
-    let currentDirection = 'ltr';
-    function detectTextDirection(text) {
-      let arabicCount = 0, totalCount = 0;
-      for (let char of text) {
-        if (!char.match(/\s/)) {
-          totalCount++;
-          if (char.match(/[\u0600-\u06FF]/)) arabicCount++;
-        }
-      }
-      if (totalCount === 0) return 'rtl';
-      return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
-    }
-    function convertMarkdownWithAlert(){
+    function doConvertMarkdown(){
+      // عند التحويل نُظهر نافذة منبثقة تفيد بنجاح العملية
       convertMarkdown();
       alert("تمت عملية التحويل بنجاح!");
     }
-    function convertMarkdown() {
-      const markdownText = document.getElementById('markdown-input').value;
-      const htmlContent = marked.parse(markdownText);
-      document.getElementById('markdown-result').innerHTML = htmlContent;
-      currentDirection = detectTextDirection(markdownText);
-      document.getElementById('markdown-result').style.direction = currentDirection;
+    let currentDirection='ltr';
+    function convertMarkdown(){
+      const markdownText=document.getElementById('markdown-input').value;
+      const htmlContent=marked.parse(markdownText);
+      document.getElementById('markdown-result').innerHTML=htmlContent;
+      currentDirection=detectTextDirection(markdownText);
+      document.getElementById('markdown-result').style.direction=currentDirection;
     }
-    function printResult() {
-      const resultDivContent = document.getElementById('markdown-result').innerHTML;
-      const printWindow = window.open('about:blank', '_blank', 'width=800,height=600');
-      const langAttr = (currentDirection === 'rtl') ? 'ar' : 'en';
-      const styleContent = `
+
+    function printResult(){
+      const resultDivContent=document.getElementById('markdown-result').innerHTML;
+      const printWindow=window.open('about:blank','_blank','width=800,height=600');
+      const langAttr=(currentDirection==='rtl')?'ar':'en';
+      const styleContent=`
         @media print {
           body { -webkit-print-color-adjust: exact; }
         }
         body {
-          font-family: 'Roboto', sans-serif;
-          background: linear-gradient(135deg, #faf3e7, #eef7f6);
-          margin: 0;
-          padding: 0;
-          color: #2c3e50;
+          font-family:'Roboto',sans-serif;
+          background:linear-gradient(135deg,#faf3e7,#eef7f6);
+          margin:0;
+          padding:0;
+          color:#2c3e50;
         }
-        #printResult { padding: 20px; }
+        #printResult{padding:20px;}
       `;
       printWindow.document.write(`
         <html lang="${langAttr}" dir="${currentDirection}">
           <head>
-            <meta charset="UTF-8" />
+            <meta charset="UTF-8"/>
             <title>Print Result</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet" crossorigin="anonymous">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
             <style>${styleContent}</style>
           </head>
           <body>
-            <div id="printResult" style="direction: ${currentDirection};">
+            <div id="printResult" style="direction:${currentDirection};">
               ${resultDivContent}
             </div>
             <script>
-              window.onload = function() { window.print(); }
+              window.onload=function(){window.print();}
             <\/script>
           </body>
         </html>
@@ -1120,102 +973,121 @@
     }
 
     /****
-     * زر عائم لأدوات الـ triggers
+     * ================ 7) Selection for triggers  ================
      ****/
-    let selectionInProgress = false;
+    let selectionInProgress=false;
+    let userSelectionRange=null;
     function handleToolsModalClick(){
+      if(selectionInProgress){
+        document.getElementById('selectionDonePrompt').style.display='block';
+      } else {
+        openToolsModal();
+      }
+    }
+    function selectionDoneYes(){
+      document.getElementById('selectionDonePrompt').style.display='none';
+      let ta=document.getElementById('markdown-input');
+      let start=ta.selectionStart, end=ta.selectionEnd;
+      userSelectionRange={start,end};
+      selectionInProgress=false;
       openToolsModal();
     }
+    function selectionDoneNo(){
+      document.getElementById('selectionDonePrompt').style.display='none';
+      selectionInProgress=true; // still in progress
+    }
+
     function openToolsModal(){
-      document.getElementById('toolsOverlay').style.display = 'flex';
+      document.getElementById('toolsOverlay').style.display='flex';
     }
     function closeToolsModal(){
-      document.getElementById('toolsOverlay').style.display = 'none';
+      document.getElementById('toolsOverlay').style.display='none';
     }
 
     /****
-     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
+     * ================ 8) Manage Triggers Overlay  ================
      ****/
     function openManageTriggersModal(){
-      // فكرة: نجلب كل العناصر ذات الأكواد اللونية (trigger-link, trigger-video...)
-      let overlay = document.getElementById('manageTriggersOverlay');
-      let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let htmlContent = document.getElementById('markdown-result').innerHTML;
-      // سنحوّل النص إلى DOM حقيقي مؤقتًا
-      let tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      let triggers = tempDiv.querySelectorAll('.trigger-link, .trigger-video, .trigger-iframe, .trigger-qids, .trigger-text');
-
-      if(triggers.length === 0){
-        container.innerHTML = "<p>No triggers found in the current content.</p>";
-      } else {
-        triggers.forEach((el, idx) => {
-          let li = document.createElement('div');
-          li.style.border = "1px solid #ccc";
-          li.style.padding = "5px";
-          li.style.marginBottom = "5px";
-          let contentShort = el.innerHTML;
-          if(contentShort.length > 30) contentShort = contentShort.slice(0,30)+"...";
-          li.innerHTML = `Trigger #${idx+1}: <code>${contentShort}</code> 
-            <button class="btn btn-sm btn-danger ms-2" onclick="deleteTrigger(${idx})">Delete</button>
-            <button class="btn btn-sm btn-info ms-2" onclick="editTrigger(${idx})">Edit</button>`;
-          container.appendChild(li);
-        });
-      }
-
-      overlay.style.display = 'flex';
+      let overlay=document.getElementById('manageTriggersOverlay');
+      let container=document.getElementById('insertedTriggersList');
+      container.innerHTML="";
+      let html=document.getElementById('markdown-result').innerHTML;
+      // Parse triggers from HTML, show them for reorder/edit
+      container.innerHTML="Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
+      overlay.style.display='flex';
     }
     function closeManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'none';
+      document.getElementById('manageTriggersOverlay').style.display='none';
     }
-
-    function deleteTrigger(triggerIndex){
-      // طريقة بسيطة: نقرأ الـ HTML النهائي، نحوله DOM، نجد جميع triggers ونحذف الـ triggerIndex
-      let container = document.getElementById('markdown-result');
-      let triggers = container.querySelectorAll('.trigger-link, .trigger-video, .trigger-iframe, .trigger-qids, .trigger-text');
-      if(triggerIndex < triggers.length){
-        triggers[triggerIndex].remove();
-        // أعد فتح النافذة
-        openManageTriggersModal();
-      }
-    }
-    function editTrigger(triggerIndex){
-      alert("Feature not fully implemented. Editing triggers is to be done manually or through re-insertion.").then(()=>{
-        // يمكن إغلاق النافذة أو إعادة فتح
-      });
-    }
-
-    let userSelectionRange = null;
-    let currentTriggerType = null;
 
     /****
-     * واجهة إضافة Trigger
+     * ================ 9) Trigger Form Overlay (Add Link, Video, iFrame, Q, Text, Multi)  ================
      ****/
+    let currentTriggerType=null;
     function openTriggerForm(type){
       closeToolsModal();
-      currentTriggerType = type;
-      let overlay = document.getElementById('triggerFormOverlay');
-      let titleEl = document.getElementById('triggerFormTitle');
-      let contentEl = document.getElementById('triggerFormContent');
-      overlay.style.display = 'flex';
-      contentEl.innerHTML = "";
+      currentTriggerType=type;
+      let overlay=document.getElementById('triggerFormOverlay');
+      let titleEl=document.getElementById('triggerFormTitle');
+      let contentEl=document.getElementById('triggerFormContent');
+      overlay.style.display='flex';
+      contentEl.innerHTML="";
 
-      let formHtml = "";
-      formHtml = buildTriggerFormHtml(type);
-      contentEl.innerHTML = formHtml;
-    }
-    function buildTriggerFormHtml(type){
-      let heading = "";
+      let formHtml="";
       switch(type){
-        case 'link': heading = "Add Link Trigger"; break;
-        case 'video': heading = "Add Video Trigger"; break;
-        case 'iframe': heading = "Add iFrame Trigger"; break;
-        case 'qids': heading = "Add Q-ID(s) Trigger"; break;
-        case 'text': heading = "Add Custom Text/Tag Trigger"; break;
+        case 'link':
+          titleEl.textContent="Add Link Trigger";
+          formHtml=getTriggerFormHtml('L'); // custom function below
+          break;
+        case 'video':
+          titleEl.textContent="Add Video Trigger";
+          formHtml=getTriggerFormHtml('VI');
+          break;
+        case 'iframe':
+          titleEl.textContent="Add iFrame Trigger";
+          formHtml=getTriggerFormHtml('IF');
+          break;
+        case 'qids':
+          titleEl.textContent="Add Q-ID(s)";
+          formHtml=getTriggerFormHtml('Q');
+          break;
+        case 'text':
+          titleEl.textContent="Add Custom Text/Tag";
+          formHtml=getTriggerFormHtml('TX');
+          break;
+        case 'multi':
+          titleEl.textContent="Add Multi Tools";
+          formHtml=`
+            <div class="mb-2">
+              <label>In multi, you can add multiple triggers in one go (on same selection). Fill them in sequence or see advanced logic.</label>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
+            </div>
+            <hr>
+            <p>Feature in progress... We'll treat it similarly, but let's do a single pass example.</p>
+            <div>
+              <label>Type 1 (e.g. Q, L, VI, IF, TX... comma separated):</label>
+              <input type="text" id="multiTypes" class="form-control" placeholder="Q,L or VI,IF etc.">
+            </div>
+            <div class="mb-2">
+              <label>Insert Position:</label>
+              <select id="triggerPosition" class="form-select">
+                <option value="before">Before</option>
+                <option value="after">After</option>
+                <option value="inside">Inside</option>
+              </select>
+            </div>
+            <button class="btn btn-primary w-100" onclick="applyMultiTriggerInsertion()">تم</button>
+          `;
+          break;
       }
-      document.getElementById('triggerFormTitle').textContent = heading;
+      contentEl.innerHTML=formHtml;
+    }
 
+    function getTriggerFormHtml(shortType){
+      // shortType => 'L','VI','IF','Q','TX'
+      // we'll build a basic form
       return `
         <div class="mb-2">
           <label>Description (optional):</label>
@@ -1233,194 +1105,198 @@
             <option value="inside">Inside</option>
           </select>
         </div>
-        ${ triggerInputField(type) }
-        <button class="btn btn-primary w-100 mt-2" onclick="applyTriggerInsertion()">تم</button>
+        <div class="mb-2">
+          <label>Value (url / qids / text, etc.):</label>
+          <input type="text" id="triggerLinkUrl" class="form-control" placeholder="...">
+        </div>
+        <button class="btn btn-primary w-100" onclick="applySingleTriggerInsertion('${shortType}')">تم</button>
       `;
     }
-    function triggerInputField(type){
-      switch(type){
-        case 'link':
-          return `
-            <div class="mb-2">
-              <label>Link URL:</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
-            </div>
-          `;
-        case 'video':
-          return `
-            <div class="mb-2">
-              <label>Video URL:</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
-            </div>
-          `;
-        case 'iframe':
-          return `
-            <div class="mb-2">
-              <label>iFrame embed URL (YouTube, etc.):</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://www.youtube.com/embed/VIDEO_ID">
-            </div>
-          `;
-        case 'qids':
-          return `
-            <div class="mb-2">
-              <label>Q-IDs (separated by space):</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="e.g. anat-lowe-q77 anat-lowe-q80">
-            </div>
-          `;
-        case 'text':
-          return `
-            <div class="mb-2">
-              <label>Custom HTML / text:</label>
-              <textarea id="triggerLinkUrl" class="form-control"></textarea>
-            </div>
-          `;
-      }
-      return "";
-    }
+
     function closeTriggerForm(){
-      document.getElementById('triggerFormOverlay').style.display = 'none';
+      document.getElementById('triggerFormOverlay').style.display='none';
     }
-
     function startSelectionMode(){
-      document.getElementById('triggerFormOverlay').style.display = 'none';
-      alert("حدد النص في خانة الماركداون ثم اضغط زر Tools & Triggers من جديد لإتمام العملية.");
-      selectionInProgress = true;
+      document.getElementById('triggerFormOverlay').style.display='none';
+      selectionInProgress=true;
+      document.getElementById('selectionDonePrompt').style.display='block';
+      alert("قم بتحديد النص في خانة الماركداون.");
     }
+    function applySingleTriggerInsertion(shortType){
+      if(!userSelectionRange){alert("No selection range set.");return;}
+      let desc=document.getElementById('triggerDesc')?document.getElementById('triggerDesc').value:"";
+      let pos=document.getElementById('triggerPosition')?document.getElementById('triggerPosition').value:"before";
+      let val=document.getElementById('triggerLinkUrl')?document.getElementById('triggerLinkUrl').value:"";
 
-    function applyTriggerInsertion(){
-      if(!userSelectionRange){
-        alert("No selection range set. Please select text range first.");
-        return;
-      }
-      let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
-      let pos = document.getElementById('triggerPosition') ? document.getElementById('triggerPosition').value : "before";
-      let valEl = document.getElementById('triggerLinkUrl');
-      let val = valEl ? valEl.value || "" : "";
+      // we'll produce a T-<pos letter>-<type>(...) placeholder
+      let posLetter=(pos==="inside"?"I":pos==="before"?"B":pos==="after"?"A":"I");
+      // shortType is e.g. 'Q','L','VI','IF','TX'
+      // placeholder => `T-${posLetter}-${shortType}(${desc}|${val})`
+      // We'll store desc & val inside
+      let placeholder=`T-${posLetter}-${shortType}(${desc}|${val})`;
 
-      let ta = document.getElementById('markdown-input');
-      let textVal = ta.value;
-      let beforeText = textVal.slice(0, userSelectionRange.start);
-      let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
-      let afterText = textVal.slice(userSelectionRange.end);
+      // insert it in the selection
+      let ta=document.getElementById('markdown-input');
+      let textVal=ta.value;
+      let beforeText=textVal.slice(0,userSelectionRange.start);
+      let selectedText=textVal.slice(userSelectionRange.start,userSelectionRange.end);
+      let afterText=textVal.slice(userSelectionRange.end);
 
-      if(!selectedText){
-        selectedText = "TRIGGERED_TEXT";
-      }
-
-      let finalInsert = buildTriggerMarkup(currentTriggerType, pos, selectedText, desc, val);
-
-      let replaced = "";
-      if(pos==="before"){
-        replaced = beforeText + finalInsert + selectedText + afterText;
-      } else if(pos==="after"){
-        replaced = beforeText + selectedText + finalInsert + afterText;
-      } else {
-        // inside → نستبدل النص بنفسه، لكن مع إضافة/دمج trigger
-        // إن كان النص نفسه يحتوي سابقًا على سبان trigger، ندمج
-        replaced = beforeText + integrateInsideTrigger(selectedText, desc, val, currentTriggerType) + afterText;
+      if(pos==="inside"){
+        // replace the selected text entirely with the placeholder (no duplication)
+        ta.value=beforeText+placeholder+afterText;
+      } else if(pos==="before"){
+        ta.value=beforeText+placeholder+selectedText+afterText;
+      } else{
+        // after
+        ta.value=beforeText+selectedText+placeholder+afterText;
       }
 
-      ta.value = replaced;
       convertMarkdown();
-      userSelectionRange = null;
+      userSelectionRange=null;
+      closeTriggerForm();
+    }
+    function applyMultiTriggerInsertion(){
+      if(!userSelectionRange){alert("No selection range set.");return;}
+      let pos=document.getElementById('triggerPosition')?document.getElementById('triggerPosition').value:"before";
+      let multiT=document.getElementById('multiTypes')?document.getElementById('multiTypes').value:"";
+      let arr=multiT.split(/\s*,\s*/);
+      // We'll produce e.g. T-B-MT(...) with sub info
+      let placeholder=`T-${pos==="inside"?"I":pos==="before"?"B":"A"}-MT(${arr.join(",")})`;
+      let ta=document.getElementById('markdown-input');
+      let textVal=ta.value;
+      let beforeText=textVal.slice(0,userSelectionRange.start);
+      let selectedText=textVal.slice(userSelectionRange.start,userSelectionRange.end);
+      let afterText=textVal.slice(userSelectionRange.end);
+
+      if(pos==="inside"){
+        ta.value=beforeText+placeholder+afterText;
+      } else if(pos==="before"){
+        ta.value=beforeText+placeholder+selectedText+afterText;
+      } else{
+        ta.value=beforeText+selectedText+placeholder+afterText;
+      }
+      convertMarkdown();
+      userSelectionRange=null;
       closeTriggerForm();
     }
 
-    /** تلوين الأنواع */
-    const triggerClassMap = {
-      link: "trigger-link",
-      video: "trigger-video",
-      iframe: "trigger-iframe",
-      qids: "trigger-qids",
-      text: "trigger-text"
-    };
-    function buildTriggerMarkup(type, pos, text, desc, val){
-      // للـ before/after → عنصر block مثل <div> أو <video> إلخ
-      let cls = triggerClassMap[type] || "trigger-text";
-      switch(type){
-        case 'link':
-          return `[${desc || text}]( ${val || '#'} )`; // ماركداون
-        case 'video':
-          return `\n<video class="${cls}" src="${val}" controls>${desc}</video>\n`;
-        case 'iframe':
-          return `\n<div class="${cls}"><h4>${desc}</h4><iframe src="${val}" width="560" height="315" frameborder="0" allowfullscreen></iframe></div>\n`;
-        case 'qids':
-          let splitted = val.split(/\s+/).join(", ");
-          return `<span class="${cls}" data-qids="${splitted}">${desc || text}</span>`;
-        case 'text':
-          return `<span class="${cls}" data-desc="${desc || ''}">${val}</span>`;
-      }
-      return `<span class="${cls}">${text}</span>`;
+    /****
+     * ================ 10) Handling images  ================
+     ****/
+    function openImageUploader(){
+      closeToolsModal();
+      document.getElementById('imageUploadOverlay').style.display='flex';
+      document.getElementById('localImageFile').value="";
+      document.getElementById('uploadProgress').style.display='none';
+      document.getElementById('uploadProgressBar').style.width='0%';
+      document.getElementById('uploadProgressBar').textContent='0%';
+      document.getElementById('imageLinkInput').value="";
+      document.getElementById('uploadedImagesList').innerHTML="";
     }
-
-    function integrateInsideTrigger(text, desc, val, type){
-      let cls = triggerClassMap[type] || "trigger-text";
-      // إذا كان النص يضم عناصر HTML → قد يكون المستخدم اختار نصًا فيه سبان
-      // سنبسط: نغلف النص كاملًا في سبان (أو ندمج) مع data-x لتمكين تعدد الأدوات
-      // initial approach: <span class="cls" data-something>text</span> + desc
-      // لكن يريد: النص يبقى كما هو. حين يضغط المستخدم عليه تظهر description + triggers...
-      // We'll embed multiple triggers by storing them as data- attributes (like data-lnk=..., data-vid=..., etc.)
-      // For simplicity: We'll wrap the original text in a <span> if not wrapped. If wrapped, append new attribute.
-      
-      // هل يحوي النص <span ...>؟
-      if(text.match(/<span[^>]*>/)){
-        // النص فيه تاغ أصلاً. نحاول ضم desc + val
-        // hack: just add a sub <span> for the new trigger
-        return `<span class="${cls}" data-extra-desc="${desc || ''}" data-extra-val="${val}">${text}</span>`;
-      } else {
-        // ببساطة نغلّف النص بسبان
-        return `<span class="${cls}" data-desc="${desc || ''}" data-val="${val}">${text}</span>`;
+    function closeImageUploader(){
+      document.getElementById('imageUploadOverlay').style.display='none';
+    }
+    function insertImageLink(){
+      let linkVal=document.getElementById('imageLinkInput').value.trim();
+      if(!linkVal)return;
+      let mdInput=document.getElementById('markdown-input');
+      mdInput.value+=`\n![Image](${linkVal})\n`;
+      convertMarkdown();
+      alert("تم إضافة رابط الصورة!");
+    }
+    async function uploadLocalImages(){
+      let files=document.getElementById('localImageFile').files;
+      if(!files||files.length===0)return;
+      let ul=document.getElementById('uploadedImagesList');
+      document.getElementById('uploadProgress').style.display='block';
+      for(let i=0;i<files.length;i++){
+        let f=files[i];
+        let reader=new FileReader();
+        reader.onload=async function(e){
+          let base64Data=e.target.result.split(',')[1];
+          let body={name:f.name,base64:base64Data};
+          document.getElementById('uploadProgressBar').style.width='50%';
+          document.getElementById('uploadProgressBar').textContent='Uploading... (50%)';
+          let r=await fetch('/api/upload-image',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(body)
+          });
+          let j=await r.json();
+          if(j.success){
+            document.getElementById('uploadProgressBar').style.width='100%';
+            document.getElementById('uploadProgressBar').textContent='100%';
+            let li=document.createElement('li');
+            li.innerHTML=`Uploaded: <a href="${j.url}" target="_blank">${j.url}</a>
+              <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${j.filePath}',this)">Delete</button>
+              <button class="btn btn-sm btn-info ms-2" onclick="insertThisImageLink('${j.url}')">Insert</button>`;
+            ul.appendChild(li);
+          } else{
+            let li=document.createElement('li');
+            li.innerHTML=`Error uploading ${f.name}: ${j.error||'unknown error'}`;
+            ul.appendChild(li);
+          }
+        };
+        reader.readAsDataURL(f);
+      }
+    }
+    function insertThisImageLink(url){
+      let mdInput=document.getElementById('markdown-input');
+      mdInput.value+=`\n![Image](${url})\n`;
+      convertMarkdown();
+      alert("تم إدراج الصورة في الماركداون!");
+    }
+    async function deleteImage(filePath,btnRef){
+      let conf=await confirm("Are you sure you want to delete this image from GitHub?");
+      if(!conf)return;
+      let r=await fetch(`/api/delete-image?filePath=${encodeURIComponent(filePath)}`,{method:'DELETE'});
+      let j=await r.json();
+      if(j.success){
+        alert("Image deleted!");
+        btnRef.parentElement.remove();
+      } else{
+        alert("Failed to delete image: "+(j.error||''));
       }
     }
 
     /****
-     * إدارة الأدوات
+     * ================ 11) Converting triggers from HTML -> MD placeholders & vice versa  ================
      ****/
-    function openManageTriggersModal(){
-      let overlay = document.getElementById('manageTriggersOverlay');
-      let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let htmlContent = document.getElementById('markdown-result').innerHTML;
-      let tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      let triggers = tempDiv.querySelectorAll('.trigger-link, .trigger-video, .trigger-iframe, .trigger-qids, .trigger-text');
-      if(triggers.length === 0){
-        container.innerHTML = "<p>No triggers found in the current content.</p>";
-      } else {
-        triggers.forEach((el, idx) => {
-          let li = document.createElement('div');
-          li.style.border = "1px solid #ccc";
-          li.style.padding = "5px";
-          li.style.marginBottom = "5px";
-          let contentShort = el.outerHTML;
-          if(contentShort.length > 80) contentShort = contentShort.slice(0,80)+"...";
-          li.innerHTML = `Trigger #${idx+1}: <code>${contentShort}</code>
-            <button class="btn btn-sm btn-danger ms-2" onclick="deleteTrigger(${idx})">Delete</button>
-            <button class="btn btn-sm btn-info ms-2" onclick="editTrigger(${idx})">Edit</button>`;
-          container.appendChild(li);
-        });
-      }
-      overlay.style.display = 'flex';
-    }
-
-    function closeManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'none';
-    }
-
-    function deleteTrigger(triggerIndex){
-      let container = document.getElementById('markdown-result');
-      let triggers = container.querySelectorAll('.trigger-link, .trigger-video, .trigger-iframe, .trigger-qids, .trigger-text');
-      if(triggerIndex < triggers.length){
-        triggers[triggerIndex].remove();
-        openManageTriggersModal();
-      }
-    }
-
-    function editTrigger(triggerIndex){
-      alert("Feature not fully implemented.").then(()=>{
-        // placeholder for real edit
+    function convertHtmlToMarkdownWithTriggers(html){
+      // We will do a naive approach: search for patterns <span class="question-trigger" data-qids="...">desc</span>
+      // etc. Then we replace them with T-<pos>-<type>(desc|value)
+      // or do a basic approach
+      // Then we pass it to turndown to handle the rest
+      // For demonstration, let's do minimal logic
+      let replaced=html;
+      // example: for question-triggers
+      replaced=replaced.replace(/<span class="question-trigger" data-qids="([^"]*)">(.*?)<\/span>/gi,(m,g1,g2)=>{
+        // no position info here, let's guess inside (I)
+        return `T-I-Q(${g2}|${g1})`;
       });
+      // link <a href="..."...
+      replaced=replaced.replace(/<a href="([^"]*)"[^>]*>(.*?)<\/a>/gi,(m,g1,g2)=>{
+        // guess inside
+        return `T-I-L(${g2}|${g1})`;
+      });
+      // video <video src="..." controls>desc</video>
+      replaced=replaced.replace(/<video[^>]*src="([^"]+)"[^>]*>(.*?)<\/video>/gi,(m,g1,g2)=>{
+        return `T-I-VI(${g2}|${g1})`;
+      });
+      // iFrame <iframe src="..."></iframe>
+      replaced=replaced.replace(/<iframe[^>]*src="([^"]+)"[^>]*>(.*?)<\/iframe>/gi,(m,g1,g2)=>{
+        // we'll treat as inside
+        return `T-I-IF(${g2||''}|${g1})`;
+      });
+      // custom text ??? We'll do minimal approach
+      // multi ???
+
+      // now pass replaced to turndown
+      let td=new TurndownService();
+      let md=td.turndown(replaced);
+      return md;
     }
+
   </script>
 </body>
 </html>
