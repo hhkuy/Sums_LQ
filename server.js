@@ -38,7 +38,7 @@ async function getFileSha(repoName, filePath){
   return null;
 }
 
-/** =============== المسارات =============== */
+/** =============== مسارات الـ API =============== */
 
 /** 1) جلب exp_topics.json */
 app.get('/api/get-exp-topics', async (req, res) => {
@@ -91,7 +91,7 @@ app.post('/api/save-exp-topics', async (req, res) => {
   }
 });
 
-/** 3) إنشاء ملف جديد */
+/** 3) إنشاء ملف جديد في exp_data */
 app.post('/api/add-file', async (req, res) => {
   try {
     const { fileName, newJsonTitle } = req.body;
@@ -114,7 +114,7 @@ app.post('/api/add-file', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      return res.json({ success: true, filePath: fileName });
+      return res.json({ success: true, filePath: fileName }); 
     } else {
       console.error("add-file error:", j);
       return res.json({ success: false, error: j.message || 'Could not create file' });
@@ -125,13 +125,13 @@ app.post('/api/add-file', async (req, res) => {
   }
 });
 
-/** 4) حذف ملف */
+/** 4) حذف ملف من المستودع الرئيسي */
 app.delete('/api/delete-file', async (req, res) => {
   try {
-    const filePath = req.query.filePath;
+    const filePath = req.query.filePath; 
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
 
-    const fullPath = filePath;
+    const fullPath = filePath; 
     const sha = await getFileSha(MAIN_REPO_NAME, fullPath);
     if(!sha) {
       console.error("delete-file: file not found or no SHA for", fullPath);
@@ -161,7 +161,7 @@ app.delete('/api/delete-file', async (req, res) => {
   }
 });
 
-/** 5) جلب ملف محتوى */
+/** 5) جلب ملف محتوى (dataFile) */
 app.get('/api/get-content-file', async (req, res) => {
   try {
     const shortFilePath = req.query.filePath;
@@ -171,205 +171,223 @@ app.get('/api/get-content-file', async (req, res) => {
     const url = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const resp = await fetch(url, { headers: githubHeaders });
     if(resp.status !== 200){
-      const t=await resp.text();
+      const t = await resp.text();
       console.error("get-content-file error text:", t);
       return res.json({ success:false, error:t });
     }
-    const j=await resp.json();
-    const contentDecoded=Buffer.from(j.content,'base64').toString('utf8');
+    const j = await resp.json();
+    const contentDecoded = Buffer.from(j.content, 'base64').toString('utf8');
     let parsed;
     try {
-      parsed=JSON.parse(contentDecoded);
+      parsed = JSON.parse(contentDecoded);
     } catch(err){
-      parsed={ content:contentDecoded };
+      parsed = { content: contentDecoded };
     }
-    return res.json({ success:true, content: parsed, sha:j.sha });
+    return res.json({ success:true, content: parsed, sha: j.sha });
   } catch(e){
     console.error("get-content-file exception:", e);
     return res.json({ success:false, error:e.toString() });
   }
 });
 
-/** 6) حفظ ملف محتوى */
+/** 6) حفظ ملف محتوى (dataFile) */
 app.post('/api/save-content-file', async (req, res) => {
   try {
     const { filePath, sha, newContent } = req.body;
-    if(!filePath||!sha) return res.json({ success:false, error:'Missing filePath or sha' });
+    if(!filePath || !sha) return res.json({ success:false, error:'Missing filePath or sha' });
 
-    const fullPath=`exp_data/${filePath}`;
-    const oldSha=await getFileSha(MAIN_REPO_NAME,fullPath);
-    if(oldSha&&oldSha!==sha){
-      console.warn("Possible conflict - local sha != remote sha for",fullPath);
+    const fullPath = `exp_data/${filePath}`;
+    const oldSha = await getFileSha(MAIN_REPO_NAME, fullPath);
+    if(oldSha && oldSha !== sha){
+      console.warn("Possible conflict - local sha != remote sha for", fullPath);
     }
 
-    const urlGet=`https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
-    const respGet=await fetch(urlGet,{headers:githubHeaders});
-    if(respGet.status!==200){
-      console.error("save-content-file: can't read old content",await respGet.text());
+    const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
+    const respGet = await fetch(urlGet, { headers: githubHeaders });
+    if(respGet.status !== 200){
+      console.error("save-content-file: can't read old content", await respGet.text());
       return res.json({ success:false, error:'File not found or no permission' });
     }
-    const getJson=await respGet.json();
-    const oldContent=Buffer.from(getJson.content,'base64').toString('utf8');
+    const getJson = await respGet.json();
+    const oldContent = Buffer.from(getJson.content, 'base64').toString('utf8');
 
     let parsedOld;
-    try{ parsedOld=JSON.parse(oldContent);}catch(e){parsedOld={content:oldContent};}
-    parsedOld.content=newContent;
+    try {
+      parsedOld = JSON.parse(oldContent);
+    } catch(e){
+      parsedOld = { content: oldContent };
+    }
+    parsedOld.content = newContent;
 
-    const updatedBase64=Buffer.from(JSON.stringify(parsedOld,null,2)).toString('base64');
-    const urlPut=`https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
-    const putBody={
-      message:`Update content file: ${fullPath}`,
-      content:updatedBase64,
-      sha:getJson.sha
+    const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
+    const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
+    const putBody = {
+      message: `Update content file: ${fullPath}`,
+      content: updatedBase64,
+      sha: getJson.sha
     };
-    const respPut=await fetch(urlPut,{
-      method:'PUT',
-      headers:{...githubHeaders,'Content-Type':'application/json'},
-      body:JSON.stringify(putBody)
+    const respPut = await fetch(urlPut, {
+      method: 'PUT',
+      headers: { ...githubHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(putBody)
     });
-    const putJson=await respPut.json();
-    if(putJson.content&&putJson.content.sha){
+    const putJson = await respPut.json();
+    if(putJson.content && putJson.content.sha){
       return res.json({ success:true, newSha: putJson.content.sha });
     } else {
-      console.error("save-content-file put error:",putJson);
-      return res.json({ success:false, error:putJson.message||'Could not update file'});
+      console.error("save-content-file put error:", putJson);
+      return res.json({ success:false, error: putJson.message || 'Could not update file' });
     }
   } catch(e){
     console.error("save-content-file exception:", e);
-    return res.json({ success:false, error:e.toString()});
+    return res.json({ success:false, error:e.toString() });
   }
 });
 
-/** 7) رفع صورة */
+/** 7) رفع صورة إلى مستودع الصور */
 app.post('/api/upload-image', async (req, res) => {
   try {
-    const { name, base64 }=req.body;
-    if(!name||!base64) return res.json({success:false,error:'Missing name or base64'});
+    const { name, base64 } = req.body;
+    if(!name || !base64) return res.json({ success:false, error:'Missing name or base64' });
 
-    let extension=name.split('.').pop().toLowerCase();
+    let extension = name.split('.').pop().toLowerCase();
     if(!['jpg','jpeg','png','gif','webp'].includes(extension)){
-      extension='png';
+      extension = 'png';
     }
-    let newFileName=Date.now()+'.'+extension;
-    let pathFile=`pic/${newFileName}`;
+    let newFileName = Date.now() + '.' + extension;
+    let pathFile = `pic/${newFileName}`;
 
-    const fileSha=await getFileSha(IMAGES_REPO_NAME,pathFile);
+    const fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
     if(fileSha){
-      newFileName=Date.now()+'_'+Math.floor(Math.random()*1000)+'.'+extension;
-      pathFile=`pic/${newFileName}`;
+      newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
+      pathFile = `pic/${newFileName}`;
     }
 
-    const url=`https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${pathFile}`;
-    const body={ message:`Upload image ${newFileName}`, content:base64 };
-    const resp=await fetch(url,{
-      method:'PUT',
-      headers:{...githubHeaders,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${pathFile}`;
+    const body = {
+      message: `Upload image ${newFileName}`,
+      content: base64
+    };
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { ...githubHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-    const j=await resp.json();
+    const j = await resp.json();
     if(j.content){
-      const rawUrl=`https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
-      return res.json({success:true,url:rawUrl,filePath:`pic/${newFileName}`});
+      const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
+      return res.json({ success:true, url: rawUrl, filePath: `pic/${newFileName}` });
     } else {
-      console.error("upload-image error:",j);
-      return res.json({success:false,error:j.message||'Upload failed'});
+      console.error("upload-image error:", j);
+      return res.json({ success:false, error: j.message || 'Upload failed' });
     }
   } catch(e){
-    console.error("upload-image exception:",e);
-    return res.json({success:false,error:e.toString()});
+    console.error("upload-image exception:", e);
+    return res.json({ success:false, error:e.toString() });
   }
 });
 
-/** 8) حذف صورة */
+/** 8) حذف صورة من مستودع الصور */
 app.delete('/api/delete-image', async (req, res) => {
   try {
-    const filePath=req.query.filePath;
-    if(!filePath) return res.json({success:false,error:'No filePath provided.'});
+    const filePath = req.query.filePath;
+    if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
 
-    const sha=await getFileSha(IMAGES_REPO_NAME,filePath);
+    const sha = await getFileSha(IMAGES_REPO_NAME, filePath);
     if(!sha){
-      console.error("delete-image: file not found or no sha",filePath);
-      return res.json({success:false,error:'Image not found or no SHA.'});
+      console.error("delete-image: file not found or no sha", filePath);
+      return res.json({ success:false, error:'Image not found or no SHA.' });
     }
-    const url=`https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${filePath}`;
-    const body={
-      message:`Delete image: ${filePath}`,
-      sha:sha
+    const url = `https://api.github.com/repos/${GITHUB_USER}/${IMAGES_REPO_NAME}/contents/${filePath}`;
+    const body = {
+      message: `Delete image: ${filePath}`,
+      sha: sha
     };
-    const resp=await fetch(url,{
-      method:'DELETE',
-      headers:{...githubHeaders,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
+    const resp = await fetch(url, {
+      method: 'DELETE',
+      headers: { ...githubHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-    const j=await resp.json();
+    const j = await resp.json();
     if(j.commit){
-      return res.json({success:true});
+      return res.json({ success:true });
     } else {
-      console.error("delete-image error:",j);
-      return res.json({success:false,error:j.message||'Could not delete image'});
+      console.error("delete-image error:", j);
+      return res.json({ success:false, error:j.message || 'Could not delete image' });
     }
   } catch(e){
-    console.error("delete-image exception:",e);
-    return res.json({success:false,error:e.toString()});
+    console.error("delete-image exception:", e);
+    return res.json({ success:false, error:e.toString() });
   }
 });
 
-/** 9) إعادة تسمية ملف */
-app.post('/api/rename-file', async (req, res)=>{
+/** 9) إعادة تسمية ملف محتوى (مع تحديث الـ title داخله) */
+app.post('/api/rename-file', async (req, res) => {
   try {
-    const {oldPath,newPath,newTitle}=req.body;
-    if(!oldPath||!newPath) return res.json({success:false,error:"Missing oldPath or newPath"});
+    const { oldPath, newPath, newTitle } = req.body;
+    if(!oldPath || !newPath) {
+      return res.json({ success:false, error:"Missing oldPath or newPath" });
+    }
 
-    const sha=await getFileSha(MAIN_REPO_NAME, "exp_data/"+oldPath);
+    const sha = await getFileSha(MAIN_REPO_NAME, "exp_data/"+oldPath);
     if(!sha){
-      return res.json({success:false,error:"File not found or no SHA for oldPath"});
+      return res.json({ success:false, error:"File not found or no SHA for oldPath" });
     }
 
-    const getUrl=`https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
-    const respGet=await fetch(getUrl,{headers:githubHeaders});
-    if(respGet.status!==200){
-      const t=await respGet.text();
-      console.error("rename-file get error text:",t);
-      return res.json({success:false,error:t});
+    const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
+    const respGet = await fetch(getUrl, { headers: githubHeaders });
+    if(respGet.status !== 200){
+      const t = await respGet.text();
+      console.error("rename-file get error text:", t);
+      return res.json({ success:false, error:t });
     }
-    const getJ=await respGet.json();
-    const oldDecoded=Buffer.from(getJ.content,'base64').toString('utf8');
+    const getJ = await respGet.json();
+    const oldDecoded = Buffer.from(getJ.content, 'base64').toString('utf8');
     let parsedOld;
-    try{ parsedOld=JSON.parse(oldDecoded);}catch(e){parsedOld={content:oldDecoded};}
-    if(newTitle){parsedOld.title=newTitle;}
-
-    const updatedBase64=Buffer.from(JSON.stringify(parsedOld,null,2)).toString('base64');
-    const putUrl=`https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
-    const putBody={
-      message:`Rename file to ${newPath}`,
-      content:updatedBase64,
-      sha:getJ.sha,
-      path:newPath
-    };
-    const respPut=await fetch(putUrl,{
-      method:'PUT',
-      headers:{...githubHeaders,'Content-Type':'application/json'},
-      body:JSON.stringify(putBody)
-    });
-    const putJson=await respPut.json();
-    if(!putJson.content){
-      console.error("rename-file put error:",putJson);
-      return res.json({success:false,error:putJson.message||'Could not rename file'});
+    try {
+      parsedOld = JSON.parse(oldDecoded);
+    } catch(e){
+      parsedOld = { content: oldDecoded };
     }
-    return res.json({success:true});
+    if(newTitle){
+      parsedOld.title = newTitle;
+    }
+
+    const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
+    const putUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
+    const putBody = {
+      message: `Rename file to ${newPath}`,
+      content: updatedBase64,
+      sha: getJ.sha,
+      path: newPath
+    };
+    const respPut = await fetch(putUrl, {
+      method: 'PUT',
+      headers: { ...githubHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(putBody)
+    });
+    const putJson = await respPut.json();
+    if(!putJson.content){
+      console.error("rename-file put error:", putJson);
+      return res.json({ success:false, error:putJson.message || 'Could not rename file' });
+    }
+    return res.json({ success:true });
   } catch(e){
-    console.error("rename-file exception:",e);
-    return res.json({success:false,error:e.toString()});
+    console.error("rename-file exception:", e);
+    return res.json({ success:false, error:e.toString() });
   }
 });
 
-/** تقديم أي ملف ثابت */
+/** تقديم أي ملف ثابت (ومن ضمنه admin.html) */
 app.use(express.static(__dirname));
-app.get('*', (req,res)=>{
-  res.sendFile(path.join(__dirname,'admin.html'));
+
+/** مسار احتياطي: أي طلب لا ينطبق على الـAPI أو ملف ثابت → أعد admin.html */
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-const port=process.env.PORT||3000;
-app.listen(port,()=>{
-  console.log("Server listening on port "+port);
+/** بدء السيرفر على بورت 3000 (محلي) أو ما تحدده Vercel */
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log("Server listening on port " + port);
 });
