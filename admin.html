@@ -114,7 +114,6 @@
       z-index: 999;
       top: 30%;
       right: 30px;
-      /* transform: translateY(-140%); */
     }
     #floatManageTriggersBtn:hover {
       opacity: 0.8;
@@ -136,7 +135,6 @@
       z-index: 999;
       top: 50%;
       right: 30px;
-      /* transform: translateY(-50%); */
     }
     #floatToolsBtn:hover {
       opacity: 0.8;
@@ -158,7 +156,6 @@
       z-index: 999;
       top: 70%;
       right: 30px;
-      /* transform: translateY(40%); */
     }
     #floatScrollBtn:hover {
       opacity: 0.8;
@@ -220,15 +217,15 @@
       text-align: center;
     }
 
-    /* تنسيقات خاصة بالأكواد/التريغرز الملونة */
+    /* تنسيقات خاصة بالأكواد/التريغرز الملونة (لو رغبت لاحقًا بجعلها ملونة في الـeditor) */
     .trigger-highlight {
       font-weight: bold;
     }
     .trigger-type-link {
-      color: #b51eec; /* مثال للون مميز للروابط */
+      color: #b51eec;
     }
     .trigger-type-video {
-      color: #f09c00; /* مثال للون مميز للفيديو */
+      color: #f09c00;
     }
     .trigger-type-iframe {
       color: #ff0055;
@@ -1031,7 +1028,6 @@
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
         
-        // نحول HTML → Markdown باستعمال Turndown
         let turndownService = new TurndownService();
         let md = turndownService.turndown(contentObj.content);
 
@@ -1082,8 +1078,17 @@
     }
 
     /****
-     *   محرر الماركداون - إضافة رسالة منبثقة عند التحويل
+     *   دالة مساعدة لإخفاء/إزالة نصوص التريغرز (T-...) من الـHTML النهائي
+     *   يمكنك التعديل لتتحول لعناصر حقيقية أو تعمل ما تشاء؛
+     *   حالياً ستزيل النص نهائياً (أو يمكن تحويله لتعليق HTML ...الخ)
      ****/
+    function removeTriggersInRenderedHTML(html) {
+      // هذه صيغة Regex بسيطة قد تحتاج ضبطاً أكبر حسب أنماط T-...
+      let re = /T-[BIA]\w*-[^\(]+\([^)]*\)(\{[^}]*\})?/g;
+      // تحذف كل ما يطابق النمط
+      return html.replace(re, '');
+    }
+
     let currentDirection = 'ltr';
     function detectTextDirection(text) {
       let arabicCount = 0, totalCount = 0;
@@ -1096,16 +1101,25 @@
       if (totalCount === 0) return 'rtl';
       return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
     }
+
     async function convertMarkdown() {
       const markdownText = document.getElementById('markdown-input').value;
       const htmlContent = marked.parse(markdownText);
-      document.getElementById('markdown-result').innerHTML = htmlContent;
+
+      // الآن نقوم بإزالة (أو معالجة) أكواد التريغر T-... من النص النهائي:
+      const cleanedHtml = removeTriggersInRenderedHTML(htmlContent);
+
+      // نضع النتيجة المنظّفة في واجهة العرض:
+      document.getElementById('markdown-result').innerHTML = cleanedHtml;
+
+      // كشف اتجاه النص
       currentDirection = detectTextDirection(markdownText);
       document.getElementById('markdown-result').style.direction = currentDirection;
 
-      // عند الضغط على زر convert يجب أن تظهر رسالة منبثقة تخبر بنجاح العملية:
+      // رسالة منبثقة تفيد بنجاح عملية التحويل
       await alert("تمت عملية التحويل بنجاح!");
     }
+
     function printResult() {
       const resultDivContent = document.getElementById('markdown-result').innerHTML;
       const printWindow = window.open('about:blank', '_blank', 'width=800,height=600');
@@ -1165,15 +1179,12 @@
 
     /****
      * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
-     * (تم إصلاحه ليعمل بسهولة لتسهيل عملية التعديل)
      ****/
     function openManageTriggersModal(){
       let overlay = document.getElementById('manageTriggersOverlay');
       let container = document.getElementById('insertedTriggersList');
       container.innerHTML = "";
       let html = document.getElementById('markdown-result').innerHTML;
-
-      // في الوقت الحالي ما زال "Demo" تجريبي
       container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress). It is now fixed to open correctly.";
       overlay.style.display = 'flex';
     }
@@ -1361,14 +1372,12 @@
     }
 
     function selectionDoneYes(){
-      // نخفي prompt
       document.getElementById('selectionDonePrompt').style.display = 'none';
       let ta = document.getElementById('markdown-input');
       let start = ta.selectionStart;
       let end = ta.selectionEnd;
       userSelectionRange = {start, end};
       selectionInProgress = false;
-      // نعيد فتح نافذة الـ triggerForm بنفس الحالة
       document.getElementById('triggerFormOverlay').style.display = 'flex';
     }
     function selectionDoneNo(){
@@ -1392,13 +1401,9 @@
       let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
       let afterText = textVal.slice(userSelectionRange.end);
 
-      // عند اختيار inside لا نكرر الجملة، الوصف/الأداة تكون داخلها
-      // بالنسبة لبقية الأوضاع تكون قبل أو بعد
-
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          // تنسيق مُبسّط: T-(B/A/I)-L(...) 
           finalInsert = `T-${pos.charAt(0).toUpperCase()}-L(${val})`;
           if(desc) finalInsert += `{${desc}}`;
           break;
@@ -1427,12 +1432,6 @@
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         // inside
-        // لا نكرر النص، فقط يبقى نفسه مع إضافة الوصف/الأداة بداخله
-        // إذا كان هناك نص محدد selectedText، نضيف ما نريده بداخله
-        // لكي لا نكرر (selectedText selectedText)
-        replaced = beforeText + (selectedText + `{${desc}}`) + afterText;
-        // يمكننا إضافة أي تنسيق آخر، لكن هنا نضع الوصف داخل الجملة مباشرة
-        // مع وضع كود التولز أيضاً:
         replaced = beforeText + selectedText + `[${finalInsert}]` + afterText;
       }
 
@@ -1442,7 +1441,6 @@
       closeTriggerForm();
     }
 
-    // مثال مبسّط لـ multi
     function applyMultiInsertion(){
       if(!userSelectionRange){
         alert("No selection range set. Please select text range first.");
@@ -1454,7 +1452,6 @@
       let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
       let afterText = textVal.slice(userSelectionRange.end);
 
-      // كمثال، نضيف تاق واحد يدل على أنه متعدد:
       let finalInsert = `T-I-MULTI(...)`;
       let replaced = beforeText + selectedText + finalInsert + afterText;
 
