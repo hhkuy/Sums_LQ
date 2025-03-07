@@ -96,7 +96,7 @@
       border: 1px solid #ddd;
       min-height: 200px;
     }
-    /* الأزرار العائمة */
+    /* زر عائم لإدارة الـ triggers (بقي كما هو) */
     #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
@@ -118,6 +118,8 @@
     #floatManageTriggersBtn:hover {
       opacity: 0.8;
     }
+    /* تم إزالة أزرار #floatToolsBtn (Tools & Triggers) بالكامل وفق المطلوب */
+
     /* زر التمرير */
     #floatScrollBtn {
       position: fixed;
@@ -195,6 +197,48 @@
       display: none;
       margin-top: 10px;
       text-align: center;
+    }
+
+    /* الزر العائم الجديد (يحل محل زر Tools & Triggers المحذوف) */
+    #floatActionsBtn {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 999;
+      top: 50%;
+      right: 30px;
+      transform: translateY(-50%);
+    }
+    #floatActionsBtn:hover {
+      opacity: 0.8;
+    }
+
+    /* تمييز العناصر التي تحتوي إضافات/ترTriggers في المعاينة (كي تظهر بلون مختلف للـ admin) */
+    #markdown-result .question-trigger {
+      background-color: rgba(255, 255, 0, 0.3);
+      border: 1px dashed orange;
+      padding: 2px 4px;
+    }
+    #markdown-result video {
+      background-color: rgba(0, 255, 0, 0.1);
+      border: 1px dashed green;
+      display: block;
+      margin: 10px 0;
+    }
+    #markdown-result iframe {
+      background-color: rgba(0, 0, 255, 0.1);
+      border: 1px dashed blue;
+      display: block;
+      margin: 10px 0;
     }
   </style>
 </head>
@@ -305,18 +349,16 @@
     </div>
   </div>
 
-  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
+  <!-- زر عائم لعرض أو إدارة كل الـ Triggers المدخلة -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
 
-  <!--
-    تم إزالة زر الأدوات العائم (#floatToolsBtn) نهائياً من الكود
-    بناءً على المطلوب، ولم تتم إضافة أي زر آخر هنا.
-  -->
+  <!-- الزر العائم الجديد الذي يحل محل زر Tools & Triggers -->
+  <button id="floatActionsBtn" onclick="openActionsMenu()">+</button>
 
   <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
-  <!-- نظام النوافذ المنبثقة (modal) -->
+  <!-- نظام النوافذ المنبثقة (modal) للرسائل الأساسية -->
   <div class="modal-overlay" id="alertOverlay">
     <div class="modal-box">
       <h3 id="alertMsg"></h3>
@@ -345,7 +387,23 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers -->
+  <!-- النافذة المنبثقة الجديدة التي تحتوي (Select Range, Add, Add Image, Manage Triggers) -->
+  <div class="modal-overlay" id="actionsOverlay">
+    <div class="modal-box" id="actionsModalBox">
+      <h3>Actions Menu</h3>
+      <div class="d-grid gap-2">
+        <button class="btn btn-outline-secondary" onclick="startSelectionMode()">Select Range</button>
+        <button class="btn btn-outline-secondary" onclick="openTriggerFormGeneral()">Add</button>
+        <button class="btn btn-outline-secondary" onclick="openImageUploader()">Add Image</button>
+        <button class="btn btn-outline-secondary" onclick="openManageTriggersModal()">Manage Triggers</button>
+      </div>
+      <div class="modal-buttons mt-2">
+        <button class="btn btn-secondary" onclick="closeActionsMenu()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (بقيت كما هي) -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
@@ -1097,6 +1155,21 @@
     }
 
     /****
+     * الزر العائم الجديد (Actions Menu) بدلاً من زر Tools & Triggers
+     ****/
+    function openActionsMenu(){
+      document.getElementById('actionsOverlay').style.display = 'flex';
+    }
+    function closeActionsMenu(){
+      document.getElementById('actionsOverlay').style.display = 'none';
+    }
+    function openTriggerFormGeneral(){
+      // نغلق نافذة الأكشنز ونفتح نافذة الأدوات الحالية
+      closeActionsMenu();
+      openToolsModal();
+    }
+
+    /****
      * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
      ****/
     function openManageTriggersModal(){
@@ -1111,20 +1184,12 @@
       document.getElementById('manageTriggersOverlay').style.display = 'none';
     }
 
-    let selectionInProgress = false;
     let userSelectionRange = null;
 
     /****
-     * نافذة الـ Tools & Triggers (كانت تُفتح عبر الزر العائم المحذوف)
-     * سنترك الدوال كما هي تحسباً لأي استخدام لاحق.
+     * واجهة إضافة Trigger (كانت مرتبطة بالزر القديم، أبقيناها كما هي)
      ****/
-    function handleToolsModalClick(){
-      if(selectionInProgress){
-        document.getElementById('selectionDonePrompt').style.display = 'block';
-      } else {
-        openToolsModal();
-      }
-    }
+    let currentTriggerType = null;
     function openToolsModal(){
       document.getElementById('toolsOverlay').style.display = 'flex';
     }
@@ -1181,16 +1246,16 @@
               <small class="text-muted">Position: before/after/inside</small>
             </div>
             <div class="mb-2">
+              <label>Video URL:</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
+            </div>
+            <div class="mb-2">
               <label>Insert Position:</label>
               <select id="triggerPosition" class="form-select">
                 <option value="before">Before</option>
                 <option value="after">After</option>
                 <option value="inside">Inside</option>
               </select>
-            </div>
-            <div class="mb-2">
-              <label>Video URL:</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
             </div>
             <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
           `;
@@ -1282,16 +1347,17 @@
     }
 
     function startSelectionMode(){
-      // نخفي نافذة formOverlay
+      // نغلق النافذة الحالية لإدخال التريغر
       document.getElementById('triggerFormOverlay').style.display = 'none';
-      // نُظهر الرسالة "Finished selection?" (لو كانت مخفية)
+      // نُظهر الرسالة "Finished selection?"
       selectionInProgress = true;
       document.getElementById('selectionDonePrompt').style.display = 'block';
       alert("قم بتحديد النص في خانة الماركداون.");
     }
 
+    let selectionInProgress = false;
     function selectionDoneYes(){
-      // نخفي prompt
+      // نخفي الـ prompt
       document.getElementById('selectionDonePrompt').style.display = 'none';
       // نخزن range
       let ta = document.getElementById('markdown-input');
@@ -1307,7 +1373,6 @@
       selectionInProgress = true;
     }
 
-    let currentTriggerType = null;
     function applyTriggerInsertion(){
       if(!userSelectionRange){
         alert("No selection range set. Please select text range first.");
@@ -1371,6 +1436,7 @@
      ****/
     function openImageUploader(){
       closeToolsModal();
+      closeActionsMenu();
       document.getElementById('imageUploadOverlay').style.display = 'flex';
       document.getElementById('localImageFile').value = "";
       document.getElementById('uploadProgress').style.display = 'none';
