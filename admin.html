@@ -97,7 +97,6 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-    /* تم إبعاد الأزرار قليلاً بحيث لا تتداخل */
     #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
@@ -112,31 +111,11 @@
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
-      top: 30%;
-      right: 30px;
-    }
-    #floatManageTriggersBtn:hover {
-      opacity: 0.8;
-    }
-    /* زر الأدوات العائم (للـ triggers وغيرها) */
-    #floatToolsBtn {
-      position: fixed;
-      width: 50px;
-      height: 50px;
-      background: #dc3545;
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      cursor: pointer;
-      z-index: 999;
       top: 50%;
       right: 30px;
+      transform: translateY(-140%);
     }
-    #floatToolsBtn:hover {
+    #floatManageTriggersBtn:hover {
       opacity: 0.8;
     }
     /* زر التمرير */
@@ -154,8 +133,9 @@
       font-size: 24px;
       cursor: pointer;
       z-index: 999;
-      top: 70%;
+      top: 50%;
       right: 30px;
+      transform: translateY(40%);
     }
     #floatScrollBtn:hover {
       opacity: 0.8;
@@ -215,29 +195,6 @@
       display: none;
       margin-top: 10px;
       text-align: center;
-    }
-
-    /* تنسيقات خاصة بالأكواد/التريغرز الملونة (لو رغبت لاحقًا بجعلها ملونة في الـeditor) */
-    .trigger-highlight {
-      font-weight: bold;
-    }
-    .trigger-type-link {
-      color: #b51eec;
-    }
-    .trigger-type-video {
-      color: #f09c00;
-    }
-    .trigger-type-iframe {
-      color: #ff0055;
-    }
-    .trigger-type-qids {
-      color: #017a00;
-    }
-    .trigger-type-text {
-      color: #d63b3b;
-    }
-    .trigger-type-multi {
-      color: #9c27b0;
     }
   </style>
 </head>
@@ -350,8 +307,12 @@
 
   <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
-  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
-  <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
+
+  <!--
+    تم إزالة زر الأدوات العائم (#floatToolsBtn) نهائياً من الكود
+    بناءً على المطلوب، ولم تتم إضافة أي زر آخر هنا.
+  -->
+
   <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
@@ -396,8 +357,6 @@
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('qids')">Add Q-ID(s)</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('text')">Add Custom Text/Tag</button>
         <button class="btn btn-outline-secondary" onclick="openImageUploader()">Upload Image(s)</button>
-        <!-- أداة جديدة multi لعمل أكثر من نوع -->
-        <button class="btn btn-outline-secondary" onclick="openTriggerForm('multi')">Add Multi</button>
       </div>
       <div class="modal-buttons mt-2">
         <button class="btn btn-secondary" onclick="closeToolsModal()">Close</button>
@@ -1030,7 +989,6 @@
         
         let turndownService = new TurndownService();
         let md = turndownService.turndown(contentObj.content);
-
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
 
@@ -1078,17 +1036,8 @@
     }
 
     /****
-     *   دالة مساعدة لإخفاء/إزالة نصوص التريغرز (T-...) من الـHTML النهائي
-     *   يمكنك التعديل لتتحول لعناصر حقيقية أو تعمل ما تشاء؛
-     *   حالياً ستزيل النص نهائياً (أو يمكن تحويله لتعليق HTML ...الخ)
+     *   محرر الماركداون
      ****/
-    function removeTriggersInRenderedHTML(html) {
-      // هذه صيغة Regex بسيطة قد تحتاج ضبطاً أكبر حسب أنماط T-...
-      let re = /T-[BIA]\w*-[^\(]+\([^)]*\)(\{[^}]*\})?/g;
-      // تحذف كل ما يطابق النمط
-      return html.replace(re, '');
-    }
-
     let currentDirection = 'ltr';
     function detectTextDirection(text) {
       let arabicCount = 0, totalCount = 0;
@@ -1101,25 +1050,13 @@
       if (totalCount === 0) return 'rtl';
       return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
     }
-
-    async function convertMarkdown() {
+    function convertMarkdown() {
       const markdownText = document.getElementById('markdown-input').value;
       const htmlContent = marked.parse(markdownText);
-
-      // الآن نقوم بإزالة (أو معالجة) أكواد التريغر T-... من النص النهائي:
-      const cleanedHtml = removeTriggersInRenderedHTML(htmlContent);
-
-      // نضع النتيجة المنظّفة في واجهة العرض:
-      document.getElementById('markdown-result').innerHTML = cleanedHtml;
-
-      // كشف اتجاه النص
+      document.getElementById('markdown-result').innerHTML = htmlContent;
       currentDirection = detectTextDirection(markdownText);
       document.getElementById('markdown-result').style.direction = currentDirection;
-
-      // رسالة منبثقة تفيد بنجاح عملية التحويل
-      await alert("تمت عملية التحويل بنجاح!");
     }
-
     function printResult() {
       const resultDivContent = document.getElementById('markdown-result').innerHTML;
       const printWindow = window.open('about:blank', '_blank', 'width=800,height=600');
@@ -1160,9 +1097,27 @@
     }
 
     /****
-     * زر عائم لأدوات الـ triggers
+     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
      ****/
+    function openManageTriggersModal(){
+      let overlay = document.getElementById('manageTriggersOverlay');
+      let container = document.getElementById('insertedTriggersList');
+      container.innerHTML = "";
+      let html = document.getElementById('markdown-result').innerHTML;
+      container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
+      overlay.style.display = 'flex';
+    }
+    function closeManageTriggersModal(){
+      document.getElementById('manageTriggersOverlay').style.display = 'none';
+    }
+
     let selectionInProgress = false;
+    let userSelectionRange = null;
+
+    /****
+     * نافذة الـ Tools & Triggers (كانت تُفتح عبر الزر العائم المحذوف)
+     * سنترك الدوال كما هي تحسباً لأي استخدام لاحق.
+     ****/
     function handleToolsModalClick(){
       if(selectionInProgress){
         document.getElementById('selectionDonePrompt').style.display = 'block';
@@ -1177,27 +1132,6 @@
       document.getElementById('toolsOverlay').style.display = 'none';
     }
 
-    /****
-     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
-     ****/
-    function openManageTriggersModal(){
-      let overlay = document.getElementById('manageTriggersOverlay');
-      let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let html = document.getElementById('markdown-result').innerHTML;
-      container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress). It is now fixed to open correctly.";
-      overlay.style.display = 'flex';
-    }
-    function closeManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'none';
-    }
-
-    let userSelectionRange = null;
-
-    /****
-     * واجهة إضافة Trigger
-     ****/
-    let currentTriggerType = null;
     function openTriggerForm(type){
       closeToolsModal();
       currentTriggerType = type;
@@ -1339,21 +1273,6 @@
             <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
           `;
           break;
-        case 'multi':
-          titleEl.textContent = "Add Multiple Tools/Triggers";
-          formHtml = `
-            <div class="mb-2">
-              <p>Here you can add multiple triggers for the same selected text range. Click "Select Text Range" then fill details multiple times, then finalize.</p>
-            </div>
-            <div class="mb-2">
-              <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-            </div>
-            <div class="mb-2">
-              <label>Note: this is a conceptual demonstration. You can add more triggers individually or here. Currently, you might handle them one by one in practice.</label>
-            </div>
-            <button class="btn btn-primary w-100" onclick="applyMultiInsertion()">تم</button>
-          `;
-          break;
       }
       contentEl.innerHTML = formHtml;
     }
@@ -1365,19 +1284,22 @@
     function startSelectionMode(){
       // نخفي نافذة formOverlay
       document.getElementById('triggerFormOverlay').style.display = 'none';
-      // نُظهر الرسالة "Finished selection?" 
+      // نُظهر الرسالة "Finished selection?" (لو كانت مخفية)
       selectionInProgress = true;
       document.getElementById('selectionDonePrompt').style.display = 'block';
       alert("قم بتحديد النص في خانة الماركداون.");
     }
 
     function selectionDoneYes(){
+      // نخفي prompt
       document.getElementById('selectionDonePrompt').style.display = 'none';
+      // نخزن range
       let ta = document.getElementById('markdown-input');
       let start = ta.selectionStart;
       let end = ta.selectionEnd;
       userSelectionRange = {start, end};
       selectionInProgress = false;
+      // نعيد فتح نافذة الـ triggerForm بنفس الحالة
       document.getElementById('triggerFormOverlay').style.display = 'flex';
     }
     function selectionDoneNo(){
@@ -1385,6 +1307,7 @@
       selectionInProgress = true;
     }
 
+    let currentTriggerType = null;
     function applyTriggerInsertion(){
       if(!userSelectionRange){
         alert("No selection range set. Please select text range first.");
@@ -1404,24 +1327,25 @@
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          finalInsert = `T-${pos.charAt(0).toUpperCase()}-L(${val})`;
-          if(desc) finalInsert += `{${desc}}`;
+          let linkInner = desc ? desc : (selectedText ? selectedText : "LinkHere");
+          if(!val) val = "#";
+          finalInsert = `[${linkInner}](${val})`;
           break;
         case 'video':
-          finalInsert = `T-${pos.charAt(0).toUpperCase()}-VI(${val})`;
-          if(desc) finalInsert += `{${desc}}`;
+          let vidDesc = desc || "Video";
+          finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
           break;
         case 'iframe':
-          finalInsert = `T-${pos.charAt(0).toUpperCase()}-IF(${val})`;
-          if(desc) finalInsert += `{${desc}}`;
+          let ifDesc = desc || "iFrame desc";
+          finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
           break;
         case 'qids':
-          finalInsert = `T-${pos.charAt(0).toUpperCase()}-Q(${val})`;
-          if(desc) finalInsert += `{${desc}}`;
+          let qdesc = desc ? desc : (selectedText ? selectedText : "Question Trigger");
+          let splitted = val.split(/\s+/).join(", ");
+          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
           break;
         case 'text':
-          finalInsert = `T-${pos.charAt(0).toUpperCase()}-TX(${val})`;
-          if(desc) finalInsert += `{${desc}}`;
+          finalInsert = val;
           break;
       }
 
@@ -1432,28 +1356,9 @@
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         // inside
-        replaced = beforeText + selectedText + `[${finalInsert}]` + afterText;
+        let mid = selectedText + finalInsert;
+        replaced = beforeText + mid + afterText;
       }
-
-      ta.value = replaced;
-      convertMarkdown();
-      userSelectionRange = null;
-      closeTriggerForm();
-    }
-
-    function applyMultiInsertion(){
-      if(!userSelectionRange){
-        alert("No selection range set. Please select text range first.");
-        return;
-      }
-      let ta = document.getElementById('markdown-input');
-      let textVal = ta.value;
-      let beforeText = textVal.slice(0, userSelectionRange.start);
-      let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
-      let afterText = textVal.slice(userSelectionRange.end);
-
-      let finalInsert = `T-I-MULTI(...)`;
-      let replaced = beforeText + selectedText + finalInsert + afterText;
 
       ta.value = replaced;
       convertMarkdown();
