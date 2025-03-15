@@ -1082,80 +1082,59 @@
 
     // === Added or Modified code ===
     // دالة لتحويل نص HTML النهائي بحيث يفسر العبارات مثل:
-    // 1) bu ( q: ... / yv: ... / p: ... ) => <span class="multi-trigger"... data-original-md="bu ( q: ... / yv: ... )">bu(...)</span>
+    // 1) bu ( q: ... / yv: ... / p: ... ) => <span class="multi-trigger"... data-original-md="bu ( q: ... )">bu(...)</span>
     // 2) ( v: ... ) أو ( yv: ... ) أو ( p: ... ) أو ( q: ... ) أو ( t: ... ) أو ( l: ... ) => <span class="...-trigger" data-...="..." data-original-md="( v: ... )">( v: ... )</span>
     // ستعمل عبر Regex على الـ HTML النهائي بعد marked.parse().
     function transformCustomTriggers(html) {
       // أولاً: تعويض أي "bu ( ... )" متعدد:
-      // نستخدم هذا النمط: /(bu)\s*\(\s*(.*?)\s*\)/gi
-      // ثم نفصل بالعَلاَمَة "/"
       let buRegex = /(bu)\s*\(\s*([^)]*?)\s*\)/gi;
       html = html.replace(buRegex, (match, buWord, inside) => {
-        // inside مثلاً: "q: anat-lowe-q1 anat-lowe-q2 / yv: https://youtu..."
-        // نقسمها حسب '/':
         let parts = inside.split('/');
         let dataAttrs = {};
         parts.forEach(part => {
-          let trimmed = part.trim(); // مثلاً: "q: anat-lowe-q1 anat-lowe-q2"
-          // ابحث عن أول نقطتين
+          let trimmed = part.trim();
           let colonIndex = trimmed.indexOf(':');
           if(colonIndex > -1) {
-            let key = trimmed.slice(0, colonIndex).trim(); // q أو yv أو p ...
+            let key = trimmed.slice(0, colonIndex).trim();
             let val = trimmed.slice(colonIndex+1).trim();
-            // نحدد نوع data attribute
             if(key === 'q') {
-              // أسئلة => data-qids
               dataAttrs['data-qids'] = val.replace(/\s+/g, ',');
             } else if(key === 'yv') {
-              // فيديو يوتيوب => data-vid-src
               dataAttrs['data-vid-src'] = val;
             } else if(key === 'v') {
-              // فيديو عادي => data-vid-src
               dataAttrs['data-vid-src'] = val;
             } else if(key === 'p') {
-              // صورة => data-img-src
-              dataAttrs['data-img-src'] = val; 
+              dataAttrs['data-img-src'] = val;
             } else if(key === 't') {
-              // نص => data-text-content
               dataAttrs['data-text-content'] = val;
             } else if(key === 'l') {
-              // رابط => data-link-href
               dataAttrs['data-link-href'] = val;
             }
           }
         });
-        // نبني العنصر
         let attrsStr = Object.entries(dataAttrs).map(([k,v]) => `${k}="${v}"`).join(' ');
-        // نحفظ الصيغة الأصلية في data-original-md
         return `<span class="multi-trigger" ${attrsStr} data-original-md="${match}">${match}</span>`;
       });
 
-      // الآن نعالج العبارات الفردية مثل: ( v: ... ), ( yv: ... ), ...
-      // نستخدم: /\(\s*(yv|v|p|q|t|l)\s*:\s*([^)]*)\)/gi
+      // الآن نعالج العبارات الفردية
       let singleRegex = /\(\s*(yv|v|p|q|t|l)\s*:\s*([^)]*)\)/gi;
       html = html.replace(singleRegex, (fullMatch, key, val) => {
         let dataAttr = '';
         let className = '';
         if(key === 'yv' || key === 'v') {
-          // فيديو => video-trigger
           className = 'video-trigger';
           dataAttr = `data-vid-src="${val.trim()}"`;
         } else if(key === 'p') {
-          // صورة => image-trigger
           className = 'image-trigger';
           dataAttr = `data-img-src="${val.trim()}"`;
         } else if(key === 'q') {
-          // أسئلة => question-trigger
           className = 'question-trigger';
-          // لو هناك عدة أسئلة مفصولة بمسافات
           let qids = val.trim().replace(/\s+/g, ',');
           dataAttr = `data-qids="${qids}"`;
         } else if(key === 't') {
-          // نص => text-trigger
           className = 'text-trigger';
           dataAttr = `data-text-content="${val.trim()}"`;
         } else if(key === 'l') {
-          // رابط => link-trigger
           className = 'link-trigger';
           dataAttr = `data-link-href="${val.trim()}"`;
         }
@@ -1169,10 +1148,8 @@
       const markdownText = document.getElementById('markdown-input').value;
       const htmlContent = marked.parse(markdownText);
 
-      // تعديل اتجاه الكتابة بناء على نسبة الحروف العربية
       currentDirection = detectTextDirection(markdownText);
 
-      // === Added or Modified code ===
       // خطوة تحويل التريغرز المخصصة:
       const finalHtml = transformCustomTriggers(htmlContent);
 
@@ -1219,57 +1196,15 @@
       printWindow.document.close();
     }
 
-    // === تم التعليق على بعض الدوال المرتبطة بالأزرار العائمة للـ triggers ===
     /*
-    function handleToolsModalClick(){
-      if(selectionInProgress){
-        document.getElementById('selectionDonePrompt').style.display = 'block';
-      } else {
-        openToolsModal();
-      }
-    }
-    function openToolsModal(){
-      document.getElementById('toolsOverlay').style.display = 'flex';
-    }
-    function closeToolsModal(){
-      document.getElementById('toolsOverlay').style.display = 'none';
-    }
-    function openManageTriggersModal(){
-      let overlay = document.getElementById('manageTriggersOverlay');
-      let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "Here we can list triggers found ... (Feature in progress)";
-      overlay.style.display = 'flex';
-    }
-    function closeManageTriggersModal(){
-      document.getElementById('manageTriggersOverlay').style.display = 'none';
-    }
-    let userSelectionRange = null;
-    function openTriggerForm(type){
-      ...
-    }
-    function closeTriggerForm(){
-      document.getElementById('triggerFormOverlay').style.display = 'none';
-    }
-    function startSelectionMode(){
-      ...
-    }
-    function selectionDoneYes(){
-      ...
-    }
-    function selectionDoneNo(){
-      ...
-    }
-    function applyTriggerInsertion(){
-      ...
-    }
+    تم التعليق على بعض الدوال المرتبطة بالأزرار العائمة للـ triggers
+    مثل: handleToolsModalClick, openToolsModal, closeToolsModal,... إلخ
     */
 
     /****
      * رفع الصور
      ****/
     function openImageUploader(){
-      // تم التعليق على أي مرجع لأزرار عائمة
-      // closeToolsModal();
       document.getElementById('imageUploadOverlay').style.display = 'flex';
       document.getElementById('localImageFile').value = "";
       document.getElementById('uploadProgress').style.display = 'none';
