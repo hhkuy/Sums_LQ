@@ -220,8 +220,7 @@
     }
 
     /* ============================= */
-    /*  الإخفاء المطلوب للأزرار العائمة ما عدا زر التمرير */
-    /*  حسب الطلب: "ازالة الازرار العائمة" فقط إبقاء زر التنقل للأعلى والأسفل */
+    /*  إخفاء الأزرار العائمة غير المرغوبة */
     #floatManageTriggersBtn {
       display: none !important;
     }
@@ -338,13 +337,11 @@
     </div>
   </div>
 
-  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة (كان سابقاً) -->
-  <!-- يتم إخفاؤه حسب الطلب -->
+  <!-- زر عائم (مخفي) لإدارة الـtriggers السابقة -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
-  <!-- زر عائم للأدوات المختلفة (كان سابقاً) -->
-  <!-- يتم إخفاؤه حسب الطلب -->
+  <!-- زر عائم (مخفي) للأدوات -->
   <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
-  <!-- زر عائم للتمرير لأعلى/لأسفل (مُبقى حسب الطلب) -->
+  <!-- زر عائم للتمرير لأعلى/لأسفل -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
   <!-- نظام النوافذ المنبثقة (modal) -->
@@ -376,11 +373,10 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (سابقاً) -->
+  <!-- نافذة منبثقة (مخفية) لأدوات & Triggers -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
-      <!-- تم إخفاء الأزرار لأننا أزلناها/لا نريدها حالياً -->
       <div class="d-grid gap-2">
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('link')">Add Link</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('video')">Add Video</button>
@@ -395,7 +391,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (سابقاً) -->
+  <!-- نافذة منبثقة (مخفية) لإدارة الأدوات المدخلة -->
   <div class="modal-overlay" id="manageTriggersOverlay">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
@@ -406,7 +402,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد (سابقاً) -->
+  <!-- نافذة منبثقة (مخفية) لخطوات إضافة Trigger محدد -->
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
@@ -417,7 +413,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لرفع الصور (سابقاً) -->
+  <!-- نافذة منبثقة (مخفية) لرفع الصور -->
   <div class="modal-overlay" id="imageUploadOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3>Upload or Insert Image</h3>
@@ -1089,10 +1085,10 @@
       // تحديد اتجاه النص
       currentDirection = detectTextDirection(markdownText);
 
-      // استدعاء الدالة الجديدة لمعالجة الصيغ المطلوبة (bu(...) / ( v: ... ) إلخ)
+      // استدعاء الدالة الجديدة لمعالجة الصيغ المطلوبة
       let finalHtml = parseNewTriggersInHtml(htmlContent, markdownText);
 
-      // عرض النتيجة في الصفحة
+      // عرض النتيجة
       document.getElementById('markdown-result').style.direction = currentDirection;
       document.getElementById('markdown-result').innerHTML = finalHtml;
     }
@@ -1137,14 +1133,10 @@
     }
 
     /****
-     * =========================
-     *  الأزرار العائمة السابقة
-     * =========================
+     * الأزرار العائمة (مخفية) وأدوات الـ triggers السابقة
      ****/
     let selectionInProgress = false;
     function handleToolsModalClick(){
-      // كان سابقاً يفتح نافذة الأدوات، لكننا أخفيناه حسب الطلب.
-      // سنتركه دون تغيير كودياً.
       if(selectionInProgress){
         document.getElementById('selectionDonePrompt').style.display = 'block';
       } else {
@@ -1160,9 +1152,7 @@
     function openManageTriggersModal(){
       let overlay = document.getElementById('manageTriggersOverlay');
       let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let html = document.getElementById('markdown-result').innerHTML;
-      container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
+      container.innerHTML = "Here we can list triggers... (Feature in progress)";
       overlay.style.display = 'flex';
     }
     function closeManageTriggersModal(){
@@ -1170,9 +1160,10 @@
     }
 
     let userSelectionRange = null;
+    let currentTriggerType = null;
+
     function openTriggerForm(type){
       closeToolsModal();
-      // باقي الكود الأصلي كما هو...
       currentTriggerType = type;
       let overlay = document.getElementById('triggerFormOverlay');
       let titleEl = document.getElementById('triggerFormTitle');
@@ -1326,7 +1317,6 @@
       document.getElementById('selectionDonePrompt').style.display = 'block';
       alert("قم بتحديد النص في خانة الماركداون.");
     }
-
     function selectionDoneYes(){
       document.getElementById('selectionDonePrompt').style.display = 'none';
       let ta = document.getElementById('markdown-input');
@@ -1341,7 +1331,6 @@
       selectionInProgress = true;
     }
 
-    let currentTriggerType = null;
     function applyTriggerInsertion(){
       if(!userSelectionRange){
         alert("No selection range set. Please select text range first.");
@@ -1361,25 +1350,35 @@
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          let linkInner = desc ? desc : (selectedText ? selectedText : "LinkHere");
-          if(!val) val = "#";
-          finalInsert = `[${linkInner}](${val})`;
+          {
+            let linkInner = desc ? desc : (selectedText ? selectedText : "LinkHere");
+            if(!val) val = "#";
+            finalInsert = `[${linkInner}](${val})`;
+          }
           break;
         case 'video':
-          let vidDesc = desc || "Video";
-          finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
+          {
+            let vidDesc = desc || "Video";
+            finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
+          }
           break;
         case 'iframe':
-          let ifDesc = desc || "iFrame desc";
-          finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
+          {
+            let ifDesc = desc || "iFrame desc";
+            finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
+          }
           break;
         case 'qids':
-          let qdesc = desc ? desc : (selectedText ? selectedText : "Question Trigger");
-          let splitted = val.split(/\s+/).join(", ");
-          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
+          {
+            let qdesc = desc ? desc : (selectedText ? selectedText : "Question Trigger");
+            let splitted = val.split(/\s+/).join(", ");
+            finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
+          }
           break;
         case 'text':
-          finalInsert = val;
+          {
+            finalInsert = val; 
+          }
           break;
       }
 
@@ -1483,58 +1482,30 @@
       }
     }
 
-
     /****************************************************************
-     *                  الدالة الجديدة لتحليل الصيغ
-     *  parseNewTriggersInHtml(htmlContent, originalMdText)
-     *  
-     *  هذه الدالة تقوم بالبحث في الـ HTML النهائي (بعد markdown)
-     *  عن الأنماط المطلوبة مثل:
-     *    1)  bu( ... ) => زر يحتوي على q: / v: / p: ...
-     *    2)  ( v: رابط ) => inline trigger لفيديو
-     *    3)  ( yv: رابط ) => inline trigger لفيديو يوتيوب
-     *    4)  ( p: رابط / عدة روابط ) => صور
-     *    5)  ( q: ... ) => أسئلة
-     *    6)  ( t: نص ) => نص
-     *    7)  ( l: رابط ) => رابط
-     *  إلخ...
-     *  
-     *  تظهر في العرض النهائي على شكل تريغر/زر، 
-     *  لكن تبقى في المحرر Markdown كما هي.
+     *  الدالة الجديدة لتحليل الصيغ مثل ( yv: رابط ) أو ( v: رابط ) 
+     *  وغيرها، وإظهارها كفيديوهات أو ما يلزم.
      ****************************************************************/
     function parseNewTriggersInHtml(finalHtml, originalMdText){
-      // سنقوم باستبدالات نصية بسيطة في الـ finalHtml.
       let updatedHtml = finalHtml;
 
-      // 1) استبدال نمط bu( ... )
-      //   مثال:  bu ( q: anat-lowe_q3 anat-lowe-q4 / yv: https://youtu.be/... )
-      //   سنبحث عبر Regex:  /bu\s*\(([^)]*)\)/g
+      // استبدال نمط bu( ...)
       updatedHtml = updatedHtml.replace(/bu\s*\(([^)]*)\)/g, (match, inner)=>{
-        // inner = "q: anat-lowe_q3 anat-lowe-q4 / yv: link ..."
-        let rawText = match; // "bu( ... )" نفسه
-        // نفكك بالحرف '/'
         let parts = inner.split(/\s*\/\s*/);
         let dataAttrs = {};
-        let originalDisplayText = match; // لإظهارها كما هي
+        let originalDisplayText = match; 
         parts.forEach(p=>{
-          // مثلاً p = "q: anat-lowe_q3 anat-lowe-q4"
-          // نفكك عند أول نقطتين :
           let colonIndex = p.indexOf(':');
           if(colonIndex>0){
             let key = p.slice(0, colonIndex).trim();
             let val = p.slice(colonIndex+1).trim();
-            // نحدد نوع المفتاح
             if(key==='q'){
-              // أسئلة، يمكن أن تكون عدة أسئلة مفصولة بمسافة
-              // نستبدل المسافات بفاصلة
               let qArr = val.split(/\s+/).join(',');
               dataAttrs['data-qids'] = (dataAttrs['data-qids'] || '') + (dataAttrs['data-qids'] ? ',' : '') + qArr;
             } else if(key==='yv' || key==='v'){
-              // فيديو
               dataAttrs['data-vid-src'] = val;
             } else if(key==='p'){
-              // صور
-              dataAttrs['data-img-src'] = val; // يمكن أن تكون عدة صور "رابط - رابط"
+              dataAttrs['data-img-src'] = val;
             } else if(key==='t'){
               dataAttrs['data-text-content'] = val;
             } else if(key==='l'){
@@ -1542,45 +1513,45 @@
             }
           }
         });
-
-        // نبني العنصر النهائي: زر مثلاً أو سبان
-        // نضع كل dataAttrs
         let attrString = '';
         for(let k in dataAttrs){
           attrString += ` ${k}="${dataAttrs[k]}"`;
         }
-        // نحتفظ بالنص الأصلي (rawText) للعرض
-        let replaced = `<span class="multi-trigger"${attrString}>${rawText}</span>`;
-        return replaced;
+        return `<span class="multi-trigger"${attrString}>${match}</span>`;
       });
 
-      // 2) استبدال النمط العام:  ( x: something )
-      //   مثال: ( v: https://... ) أو ( p: https://... ) إلخ
+      // (=== تعديل لإظهار الفيديوهات مباشرة ===)
+      // إذا رأينا ( v: ... ) نضع <video> ... إلخ
+      // إذا رأينا ( yv: ... ) نضع <iframe> يوتيوب مثلاً
+      // إلخ.
       updatedHtml = updatedHtml.replace(/\(\s*(q|yv|v|p|t|l)\s*:\s*([^)]*)\)/g, (match, key, val)=>{
-        // match = "( v: https://... )"
         let originalText = match;
-        let replaced = originalText; // افتراضي
         val = val.trim();
-
         if(key==='q'){
-          // أسئلة
           let qArr = val.split(/\s+/).join(',');
-          replaced = `<span class="question-trigger" data-qids="${qArr}">${originalText}</span>`;
-        } else if(key==='v' || key==='yv'){
-          // فيديو
-          replaced = `<span class="video-trigger" data-vid-src="${val}">${originalText}</span>`;
-        } else if(key==='p'){
-          // صورة
-          replaced = `<span class="image-trigger" data-img-src="${val}">${originalText}</span>`;
-        } else if(key==='t'){
-          // نص
-          replaced = `<span class="text-trigger" data-text-content="${val}">${originalText}</span>`;
-        } else if(key==='l'){
-          // رابط
-          replaced = `<span class="link-trigger" data-link-href="${val}">${originalText}</span>`;
+          return `<span class="question-trigger" data-qids="${qArr}">${originalText}</span>`;
         }
-
-        return replaced;
+        else if(key==='v'){
+          // فيديو عادي
+          return `<video src="${val}" controls style="max-width:100%; display:block; margin:10px 0;">Video Not Supported</video>`;
+        }
+        else if(key==='yv'){
+          // نفترض أنه رابط يوتيوب: نظهره كتضمين iframe
+          return `<iframe width="560" height="315" src="${val}" frameborder="0" style="display:block; margin:10px 0;" allowfullscreen></iframe>`;
+        }
+        else if(key==='p'){
+          // صورة
+          return `<img src="${val}" alt="image" style="max-width:100%; margin:10px 0;" />`;
+        }
+        else if(key==='t'){
+          // نص
+          return `<span class="text-trigger" data-text-content="${val}">${originalText}</span>`;
+        }
+        else if(key==='l'){
+          // رابط
+          return `<a href="${val}" target="_blank">${originalText}</a>`;
+        }
+        return originalText;
       });
 
       return updatedHtml;
