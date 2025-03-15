@@ -181,6 +181,7 @@ app.get('/api/get-content-file', async (req, res) => {
     try {
       parsed = JSON.parse(contentDecoded);
     } catch(err){
+      // لو كان المحتوى نصاً فقط وليس JSON
       parsed = { content: contentDecoded };
     }
     return res.json({ success:true, content: parsed, sha: j.sha });
@@ -275,6 +276,7 @@ app.post('/api/upload-image', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
+      // رابط raw:
       const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
       return res.json({ success:true, url: rawUrl, filePath: `pic/${newFileName}` });
     } else {
