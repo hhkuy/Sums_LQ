@@ -97,12 +97,12 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-    /* [ADDED] اخفينا الأزرار العائمة الخاصة بالـ triggers وأبقينا فقط زر التمرير */
+    /* إخفاء أزرار التريغرز والإبقاء على زر التمرير فقط */
     #floatManageTriggersBtn {
-      display: none !important; /* إخفاء زر إدارة التريغرز */
+      display: none !important;
     }
     #floatToolsBtn {
-      display: none !important; /* إخفاء زر إضافة التريغرز */
+      display: none !important;
     }
     #floatScrollBtn {
       position: fixed;
@@ -326,11 +326,11 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers -->
+  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (مخفية بالأعلى) -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
-      <!-- هنا الأزرار المختلفة -->
+      <!-- هنا الأزرار المختلفة (معطلة حالياً) -->
       <div class="d-grid gap-2">
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('link')">Add Link</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('video')">Add Video</button>
@@ -345,7 +345,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (تعديل/حذف/إعادة ترتيب) -->
+  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (مخفية بالأعلى) -->
   <div class="modal-overlay" id="manageTriggersOverlay">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
@@ -356,7 +356,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد -->
+  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد (مخفية) -->
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
@@ -367,7 +367,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لرفع الصور -->
+  <!-- نافذة منبثقة لرفع الصور (مخفية) -->
   <div class="modal-overlay" id="imageUploadOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3>Upload or Insert Image</h3>
@@ -486,7 +486,7 @@
         if(!isDown) return;
         e.preventDefault();
         const y = e.pageY - mdInput.offsetTop;
-        const walk = (y - startY) * 1.5; 
+        const walk = (y - startY) * 1.5;
         mdInput.scrollTop = scrollTop - walk;
       });
     })();
@@ -508,8 +508,8 @@
     /****
      *                 إدارة exp_topics.json
      ****/
-    let expTopics = null;  
-    let topicsSha = null;  
+    let expTopics = null;
+    let topicsSha = null;
 
     async function loadExpTopics(){
       try {
@@ -664,7 +664,7 @@
         if(newTitle === "") return;
         node.title = newTitle;
         if(node.dataFile){
-          await renameContentFile(path, node); 
+          await renameContentFile(path, node);
         }
         renderTopicsTree();
         fillParentSelect();
@@ -713,11 +713,11 @@
     }
     async function renameContentFile(path, node){
       try {
-        let oldPath = node.dataFile; 
+        let oldPath = node.dataFile;
         let parentPath = path.slice(0, -1);
         let newFileName = "";
 
-        let chainForParent = getTitlesChain(parentPath.slice(0, -1)); 
+        let chainForParent = getTitlesChain(parentPath.slice(0, -1));
         let parentChain = chainForParent.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
         let childPart = node.title.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
         if(parentChain){
@@ -726,8 +726,8 @@
           newFileName = childPart + ".json";
         }
 
-        let body = { 
-          oldPath, 
+        let body = {
+          oldPath,
           newPath: "exp_data/" + newFileName
         };
         let fullChain = getTitlesChain(path);
@@ -809,7 +809,7 @@
         alert("Please enter a title.");
         return;
       }
-      let nodeType = document.getElementById('newNodeType').value; 
+      let nodeType = document.getElementById('newNodeType').value;
       let parentVal = document.getElementById('parentSelect').value;
       let newObj = { title: nodeTitle };
 
@@ -826,7 +826,7 @@
         });
         let createRes = await createReq.json();
         if(createRes.success){
-          newObj.dataFile = fileName; 
+          newObj.dataFile = fileName;
         } else {
           alert("Could not create file for content. " + (createRes.error||''));
           return;
@@ -875,10 +875,10 @@
     }
     function generateTitleFieldForContent(path, newTitle){
       if(path === 'root'){
-        return newTitle; 
+        return newTitle;
       } else {
         let realPath = JSON.parse(path);
-        let chainTitles = getTitlesChain(realPath); 
+        let chainTitles = getTitlesChain(realPath);
         if(chainTitles.length > 0){
           return chainTitles.join(" - ") + " - " + newTitle;
         } else {
@@ -967,122 +967,136 @@
         let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
 
-        // [ADDED]: تجهيز Turndown بحيث يسترجع التريغرز إلى شكلها ( v: ... ) أو bu(...) إلخ
+        // قاعدة Turndown لاستعادة الـ Markdown من الـ HTML
         let turndownService = new TurndownService();
 
-        // قاعدة عامة لاستخراج الـ span الذي بداخله data-* وتحويله مرة أخرى إلى الصيغة:
+        // نعيد عكس تضميناتنا:
         turndownService.addRule('customTriggers', {
           filter: function (node) {
-            return (
-              node.nodeName === 'SPAN' &&
-              (node.classList.contains('video-trigger') ||
-               node.classList.contains('image-trigger') ||
-               node.classList.contains('link-trigger') ||
-               node.classList.contains('question-trigger') ||
-               node.classList.contains('text-trigger') ||
-               node.classList.contains('iframe-trigger') ||
-               node.classList.contains('multi-trigger'))
-            );
+            // يوجد احتمالان: إما زر (bu) أو تضمين مباشر
+            // للزر: إما single trigger أو multi-trigger
+            // للتضمين المباشر: قد يكون <video src> أو <img> أو <a> ... أو span.trigger ...
+            if(node.nodeName === 'SPAN') {
+              // لو كان multi-trigger أو أية class-trigger
+              if(node.classList.contains('multi-trigger') ||
+                 node.classList.contains('video-trigger') ||
+                 node.classList.contains('image-trigger') ||
+                 node.classList.contains('question-trigger') ||
+                 node.classList.contains('link-trigger') ||
+                 node.classList.contains('iframe-trigger') ||
+                 node.classList.contains('text-trigger')) {
+                return true;
+              }
+            }
+            if(node.nodeName === 'VIDEO' ||
+               node.nodeName === 'IMG' ||
+               node.nodeName === 'A') {
+              return true;
+            }
+            return false;
           },
           replacement: function (content, node) {
-            // نعيد النص الظاهر كما هو (مثلاً "( v: https://xyz )")
-            let originalText = node.textContent || '';
-
-            // لو كان multi-trigger:
-            if(node.classList.contains('multi-trigger')){
-              // "bu ( ... )" + بالداخل نحلل إن وجد data-qids أو data-vid-src ...الخ
-              // نحتاج بناء الصيغة "bu ( q: .. / v: .. / p: .. / ... )"
+            // إذا كان multi-trigger (زر يحتوي على أكثر من نوع)
+            if(node.classList && node.classList.contains('multi-trigger')){
+              // نرمزها بـ bu (...)
+              // نفحص الـ data-attributes
               let items = [];
-              // أسئلة q:
               if(node.hasAttribute('data-qids')){
-                let q = node.getAttribute('data-qids');
-                items.push(`q: ${q.replace(/,/g, ' ')}`);
+                let qval = node.getAttribute('data-qids').replace(/,/g, ' ');
+                items.push(`q: ${qval}`);
               }
-              // فيديو عادي أو يوتيوب v: / yv:
               if(node.hasAttribute('data-vid-src')){
-                // لن نميز بين yv و v لأن المستخدم أدخلها كلينك فيديو
-                // إن أردت التفريق، يمكنك فحص الرابط.
-                let vLink = node.getAttribute('data-vid-src');
-                // نفترض لو وجدت "youtu" نضع yv وإلا v
-                if(vLink.includes('youtu')) {
-                  items.push(`yv: ${vLink}`);
-                } else {
-                  items.push(`v: ${vLink}`);
-                }
+                let v = node.getAttribute('data-vid-src');
+                if(v.includes('youtu')) items.push(`yv: ${v}`);
+                else items.push(`v: ${v}`);
               }
-              // صور p:
               if(node.hasAttribute('data-img-src')){
-                let pLink = node.getAttribute('data-img-src');
-                items.push(`p: ${pLink}`);
+                items.push(`p: ${node.getAttribute('data-img-src')}`);
               }
-              // روابط l:
               if(node.hasAttribute('data-link-href')){
-                let link = node.getAttribute('data-link-href');
-                items.push(`l: ${link}`);
+                items.push(`l: ${node.getAttribute('data-link-href')}`);
               }
-              // iframes
               if(node.hasAttribute('data-iframe-src')){
-                let src = node.getAttribute('data-iframe-src');
-                items.push(`iframe: ${src}`); 
-                // أو لو أردت الرمز t: ... وهكذا
+                items.push(`iframe: ${node.getAttribute('data-iframe-src')}`);
               }
-              // نص t:
               if(node.hasAttribute('data-text-content')){
                 items.push(`t: ${node.getAttribute('data-text-content')}`);
               }
               let joined = items.join(' / ');
               return `bu ( ${joined} )`;
             }
-
-            // وإلا فهو تريغر واحد:
-            if(node.classList.contains('video-trigger')){
-              let link = node.getAttribute('data-vid-src') || '';
-              // لو الرابط يوتيوب -> yv وإلا v
-              if(link.includes('youtu')){
-                return `( yv: ${link} )`;
+            // إذا كان زر بنوع واحد (مثلا video-trigger بدون بقية data)
+            if(node.classList && (
+              node.classList.contains('video-trigger') ||
+              node.classList.contains('image-trigger') ||
+              node.classList.contains('question-trigger') ||
+              node.classList.contains('link-trigger') ||
+              node.classList.contains('iframe-trigger') ||
+              node.classList.contains('text-trigger')
+            )) {
+              // نتحقق هل هو زر أم تضمين مباشر؟
+              // لو وجدنا أن النص الداخلي يبدأ بـ "bu (" في الأصل... لكن لا يوجد نص هنا
+              // نفحص لو كان عنوانه مثلاً "bu ( v:... )"
+              // الأسهل: إن كان node.innerHTML يحوي "bu (" نفترضه زر:
+              // لكن لتبسيط الأمر، نفحص data-bu="1" (لا نملكه!). إذن سنفترض:
+              // -- لو كان span.class=video-trigger لكنه بدون parent multi-trigger => هذا تضمين مباشر
+              // (المطلوب من السؤال: "بدون bu" يعني تضمين مباشر.)
+              let hasParentMulti = node.parentElement && node.parentElement.classList.contains('multi-trigger');
+              if(hasParentMulti) {
+                // حينها لا نعكسه لأنه بالفعل مدمج مع parent
+                return '';
               } else {
-                return `( v: ${link} )`;
+                // تضمين مباشر
+                if(node.classList.contains('video-trigger')){
+                  let link = node.getAttribute('data-vid-src');
+                  if(link.includes('youtu')){
+                    return `( yv: ${link} )`;
+                  } else {
+                    return `( v: ${link} )`;
+                  }
+                } else if(node.classList.contains('image-trigger')){
+                  let link = node.getAttribute('data-img-src');
+                  return `( p: ${link} )`;
+                } else if(node.classList.contains('question-trigger')){
+                  let q = node.getAttribute('data-qids').replace(/,/g, ' ');
+                  return `( q: ${q} )`;
+                } else if(node.classList.contains('link-trigger')){
+                  let l = node.getAttribute('data-link-href');
+                  return `( l: ${l} )`;
+                } else if(node.classList.contains('iframe-trigger')){
+                  let f = node.getAttribute('data-iframe-src');
+                  return `( iframe: ${f} )`;
+                } else if(node.classList.contains('text-trigger')){
+                  let t = node.getAttribute('data-text-content');
+                  return `( t: ${t} )`;
+                }
               }
             }
-            if(node.classList.contains('image-trigger')){
-              let link = node.getAttribute('data-img-src') || '';
-              return `( p: ${link} )`;
+            // لو كان <video> تضمين مباشر:
+            if(node.nodeName === 'VIDEO'){
+              let src = node.getAttribute('src') || '';
+              return `( v: ${src} )`;
             }
-            if(node.classList.contains('link-trigger')){
-              let link = node.getAttribute('data-link-href') || '';
-              return `( l: ${link} )`;
+            // لو كان <img>:
+            if(node.nodeName === 'IMG'){
+              let src = node.getAttribute('src') || '';
+              return `( p: ${src} )`;
             }
-            if(node.classList.contains('question-trigger')){
-              let qids = node.getAttribute('data-qids') || '';
-              // نفصلها بمسافة بدل الفاصلة
-              let spaced = qids.replace(/,/g, ' ');
-              return `( q: ${spaced} )`;
+            // لو كان <a>:
+            if(node.nodeName === 'A'){
+              let href = node.getAttribute('href') || '';
+              return `( l: ${href} )`;
             }
-            if(node.classList.contains('text-trigger')){
-              let txt = node.getAttribute('data-text-content') || '';
-              return `( t: ${txt} )`;
-            }
-            if(node.classList.contains('iframe-trigger')){
-              let src = node.getAttribute('data-iframe-src') || '';
-              // لو أردت ترميز مختلف، يمكنك عمل: ( iframe: ...)
-              return `( yv: ${src} )`; 
-              // أو يمكن وضعه ( iframe: src )
-            }
-
-            // إن لم ينطبق شيء؛ نعيد النص كما هو
-            return originalText;
+            return '';
           }
         });
 
         let md = turndownService.turndown(contentObj.content);
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
-
-        document.getElementById('contentLoadMsg').innerHTML =
-          `<div class="alert alert-success">Content loaded successfully!</div>`;
-        
-        await alert("تم تحميل ملف المحتوى بنجاح، والمحتوى " + (contentObj.content ? "غير فارغ." : "فارغ."));
-        originalContentHtml = contentObj.content; // نتذكر الـ HTML الأصلي
+        document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-success">Content loaded successfully!</div>`;
+        await alert("تم تحميل ملف المحتوى بنجاح.");
+        originalContentHtml = contentObj.content;
       } catch(e){
         console.error(e);
         alert("Error loading content file");
@@ -1112,7 +1126,7 @@
         if(j.success){
           alert("Content saved!");
           originalContentHtml = finalHtml;
-          currentContentSha = j.newSha; 
+          currentContentSha = j.newSha;
         } else {
           alert("Save failed: " + (j.error || ''));
         }
@@ -1138,91 +1152,101 @@
       return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
     }
 
-    // [ADDED]: دالة لتحويل الصيغ مثل ( v: ... ) أو bu(...) في الماركداون إلى تريغرز بالـ HTML
+    /**
+     * دالة خاصة بتحويل الصيغ إلى HTML:
+     * - إذا كانت الصيغة bu(...) => إنشاء زر (single أو multi).
+     * - إذا كانت فقط (...) => تضمين مباشر (بدون زر).
+     */
     function parseCustomTriggers(mdText) {
-      // تعالج أولاً multi-trigger بصيغة:  bu (  ... )  
-      // مثال: bu ( q: x y / v: https://... / p: https://... )
-      // نستخدم regex لكشف bu ( ... )
       let result = mdText;
 
-      // 1) معالجة الـ multi-trigger: /bu\s*\(\s*(.*?)\)/gs
-      // نستخدم callback لتحليل ما بداخل الأقواس
-      const multiRegex = /bu\s*\(\s*([^)]*?)\)/g;
-      result = result.replace(multiRegex, (match, inside) => {
-        // inside مثلاً: "q: anat-lowe_q3 anat-lowe-q4 / yv: https://youtu..."
-        // نفصل بالعكس المائل '/', ثم نعالج كل جزء
+      // أولاً: bu(...)
+      const buRegex = /bu\s*\(\s*([^)]*?)\)/g;
+      result = result.replace(buRegex, (fullMatch, inside) => {
+        // inside مثلاً: q: x y / v: https://... / p: ...
+        // نفصل على /
         let parts = inside.split('/');
         let dataAttrs = [];
-        let originalText = match; // لنطبعه كنص
-        let finalContent = `( ${inside} )`; // للعرض الظاهري
+        let countTypes = 0;
 
         parts.forEach(part => {
-          let trimmed = part.trim(); 
-          // احتمال يكون "q: anat-lowe_q3 anat-lowe-q4"
-          // أول حرفين (باستثناء المسافات) قد يكون "q:", "v:", "yv:", "p:", "l:", "t:", ...
-          // نفصلها:
+          let trimmed = part.trim();
           let colonIndex = trimmed.indexOf(':');
           if(colonIndex > -1){
             let key = trimmed.slice(0, colonIndex).trim();
             let val = trimmed.slice(colonIndex+1).trim();
-            // نقرر أي data- نعطيها
             if(key === 'q'){
-              // قد يكون "anat-lowe_q3 anat-lowe_q4" => نفصلها بمسافة ونحوّلها إلى فاصلة
               let arr = val.split(/\s+/).filter(Boolean);
               let joined = arr.join(',');
               dataAttrs.push(`data-qids="${joined}"`);
+              countTypes++;
             } else if(key === 'v' || key === 'yv'){
-              // الاثنين نضعهما data-vid-src
               dataAttrs.push(`data-vid-src="${val}"`);
+              countTypes++;
             } else if(key === 'p'){
               dataAttrs.push(`data-img-src="${val}"`);
+              countTypes++;
             } else if(key === 'l'){
               dataAttrs.push(`data-link-href="${val}"`);
+              countTypes++;
             } else if(key === 't'){
               dataAttrs.push(`data-text-content="${val}"`);
+              countTypes++;
             } else if(key === 'iframe'){
               dataAttrs.push(`data-iframe-src="${val}"`);
-            } 
+              countTypes++;
+            }
           }
         });
 
-        // ندمجها في <span class="multi-trigger" ...>....</span>
-        let dataStr = dataAttrs.join(' ');
-        // نعيد كتابة الـHTML النهائي
-        return `<span class="multi-trigger" ${dataStr}>${"bu ( "+inside+" )"}</span>`;
+        // لو أكتر من 1 => multi-trigger
+        if(countTypes > 1){
+          return `<span class="multi-trigger" ${dataAttrs.join(' ')}>${fullMatch}</span>`;
+        }
+        // لو واحد فقط => زر نوع مفرد
+        else if(countTypes === 1){
+          // نفحص أي نوع هو
+          // سنستخرجها من dataAttrs نفسها
+          // مثلاً لو وجدنا data-vid-src => video-trigger
+          let finalClass = '';
+          let dataStr = dataAttrs.join(' ');
+          if(dataStr.includes('data-vid-src')) finalClass = 'video-trigger';
+          else if(dataStr.includes('data-img-src')) finalClass = 'image-trigger';
+          else if(dataStr.includes('data-qids')) finalClass = 'question-trigger';
+          else if(dataStr.includes('data-link-href')) finalClass = 'link-trigger';
+          else if(dataStr.includes('data-iframe-src')) finalClass = 'iframe-trigger';
+          else if(dataStr.includes('data-text-content')) finalClass = 'text-trigger';
+          return `<span class="${finalClass}" ${dataStr}>${fullMatch}</span>`;
+        }
+        // لو لا شيء => نعيد النص كما هو
+        return fullMatch;
       });
 
-      // 2) معالجة التريغر الواحد:  ( v: ... ) أو ( yv: ... ) أو ( p: ... ) أو ( q: ... ) إلخ
-      const singleRegex = /\(\s*([a-zA-Z]{1,4})\s*:\s*([^)]*?)\)/g;
-      // ^ لاحظ أننا نتوقع الحرفين أو الثلاثة (q, v, yv, l, t, p) ... الخ
-      result = result.replace(singleRegex, (fullMatch, key, val) => {
-        // key: مثلاً v
-        // val: مثلاً الرابط
+      // ثانياً: التضمين المباشر بدون bu(...)
+      // صيغة: ( key: val )
+      const singleRegex = /\(\s*([a-zA-Z]{1,6})\s*:\s*([^)]*?)\)/g;
+      result = result.replace(singleRegex, (m, key, val) => {
         let trimmedVal = val.trim();
-        let original = fullMatch; // للعرض
-        if(key === 'v' || key === 'yv'){
-          // فيديو
-          return `<span class="video-trigger" data-vid-src="${trimmedVal}">${original}</span>`;
-        } else if(key === 'p'){
-          // صورة
-          return `<span class="image-trigger" data-img-src="${trimmedVal}">${original}</span>`;
-        } else if(key === 'q'){
-          // أسئلة
-          let arr = trimmedVal.split(/\s+/).filter(Boolean);
-          let joined = arr.join(',');
-          return `<span class="question-trigger" data-qids="${joined}">${original}</span>`;
-        } else if(key === 't'){
-          // نص
-          return `<span class="text-trigger" data-text-content="${trimmedVal}">${original}</span>`;
-        } else if(key === 'l'){
-          // رابط
-          return `<span class="link-trigger" data-link-href="${trimmedVal}">${original}</span>`;
-        } else if(key === 'iframe'){
-          // تضمين
-          return `<span class="iframe-trigger" data-iframe-src="${trimmedVal}">${original}</span>`;
-        } 
-        // إن لم ينطبق:
-        return fullMatch;
+        switch(key){
+          case 'v': // video mp4 direct
+            return `<video src="${trimmedVal}" controls></video>`;
+          case 'yv': // youtube link => span video-trigger
+            return `<span class="video-trigger" data-vid-src="${trimmedVal}"></span>`;
+          case 'p': // image
+            return `<img src="${trimmedVal}" alt=""/>`;
+          case 'q': // question
+            let arr = trimmedVal.split(/\s+/).filter(Boolean);
+            let joined = arr.join(',');
+            return `<span class="question-trigger" data-qids="${joined}"></span>`;
+          case 'l': // link
+            return `<a href="${trimmedVal}" target="_blank"></a>`;
+          case 't': // text
+            return `<span class="text-trigger" data-text-content="${trimmedVal}"></span>`;
+          case 'iframe':
+            return `<span class="iframe-trigger" data-iframe-src="${trimmedVal}"></span>`;
+          default:
+            return m; // لا نغيره
+        }
       });
 
       return result;
@@ -1230,10 +1254,7 @@
 
     function convertMarkdown() {
       const markdownText = document.getElementById('markdown-input').value;
-
-      // [ADDED] قبل تشغيل marked، نستبدل الصيغ الخاصة بالتريغرز
       let replacedText = parseCustomTriggers(markdownText);
-
       const htmlContent = marked.parse(replacedText);
       document.getElementById('markdown-result').innerHTML = htmlContent;
       currentDirection = detectTextDirection(markdownText);
@@ -1280,12 +1301,11 @@
     }
 
     /****
-     * زر عائم لأدوات الـ triggers
+     * زر عائم لأدوات الـ triggers (مخفى)
      ****/
     let selectionInProgress = false;
     function handleToolsModalClick(){
       if(selectionInProgress){
-        // بدلاً من النافذة المنبثقة confirm، نظهر القسم فوق زر Convert
         document.getElementById('selectionDonePrompt').style.display = 'block';
       } else {
         openToolsModal();
@@ -1298,15 +1318,10 @@
       document.getElementById('toolsOverlay').style.display = 'none';
     }
 
-    /****
-     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
-     ****/
     function openManageTriggersModal(){
       let overlay = document.getElementById('manageTriggersOverlay');
       let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let html = document.getElementById('markdown-result').innerHTML;
-      container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
+      container.innerHTML = "Listing triggers is not implemented yet...";
       overlay.style.display = 'flex';
     }
     function closeManageTriggersModal(){
@@ -1314,10 +1329,6 @@
     }
 
     let userSelectionRange = null;
-
-    /****
-     * واجهة إضافة Trigger
-     ****/
     let currentTriggerType = null;
     function openTriggerForm(type){
       closeToolsModal();
@@ -1335,11 +1346,11 @@
           formHtml = `
             <div class="mb-2">
               <label>Description (optional):</label>
-              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+              <input type="text" id="triggerDesc" class="form-control" placeholder="desc...">
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Then choose position (before, after, inside)</small>
+              <small class="text-muted">Then position</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1361,11 +1372,11 @@
           formHtml = `
             <div class="mb-2">
               <label>Description (optional):</label>
-              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+              <input type="text" id="triggerDesc" class="form-control" placeholder="desc...">
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1387,15 +1398,15 @@
           formHtml = `
             <div class="mb-2">
               <label>Description (optional):</label>
-              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+              <input type="text" id="triggerDesc" class="form-control" placeholder="desc...">
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
-              <label>iFrame embed URL (YouTube, etc.):</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://www.youtube.com/embed/VIDEO_ID">
+              <label>iFrame URL:</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://youtube.com/embed/...">
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1413,15 +1424,15 @@
           formHtml = `
             <div class="mb-2">
               <label>Description (optional):</label>
-              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+              <input type="text" id="triggerDesc" class="form-control" placeholder="desc...">
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
-              <label>Q-IDs (separated by space):</label>
-              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="e.g. anat-lowe-q77 anat-lowe-q80">
+              <label>Q-IDs (space separated):</label>
+              <input type="text" id="triggerLinkUrl" class="form-control" placeholder="q1 q2 q3">
             </div>
             <div class="mb-2">
               <label>Insert Position:</label>
@@ -1435,18 +1446,18 @@
           `;
           break;
         case 'text':
-          titleEl.textContent = "Add Custom Text/Tag";
+          titleEl.textContent = "Add Custom Text";
           formHtml = `
             <div class="mb-2">
               <label>Description (optional):</label>
-              <input type="text" id="triggerDesc" class="form-control" placeholder="Write any description...">
+              <input type="text" id="triggerDesc" class="form-control" placeholder="desc...">
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position: before/after/inside</small>
+              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
-              <label>Custom HTML / text:</label>
+              <label>Custom text:</label>
               <textarea id="triggerLinkUrl" class="form-control"></textarea>
             </div>
             <div class="mb-2">
@@ -1469,24 +1480,17 @@
     }
 
     function startSelectionMode(){
-      // نخفي نافذة formOverlay
       document.getElementById('triggerFormOverlay').style.display = 'none';
-      // نُظهر الرسالة "Finished selection?" (لو كانت مخفية)
       selectionInProgress = true;
       document.getElementById('selectionDonePrompt').style.display = 'block';
-      alert("قم بتحديد النص في خانة الماركداون.");
+      alert("حدد النص في الماركداون.");
     }
 
     function selectionDoneYes(){
-      // نخفي prompt
       document.getElementById('selectionDonePrompt').style.display = 'none';
-      // نخزن range
       let ta = document.getElementById('markdown-input');
-      let start = ta.selectionStart;
-      let end = ta.selectionEnd;
-      userSelectionRange = {start, end};
+      userSelectionRange = {start: ta.selectionStart, end: ta.selectionEnd};
       selectionInProgress = false;
-      // نعيد فتح نافذة الـ triggerForm بنفس الحالة
       document.getElementById('triggerFormOverlay').style.display = 'flex';
     }
     function selectionDoneNo(){
@@ -1496,7 +1500,7 @@
 
     function applyTriggerInsertion(){
       if(!userSelectionRange){
-        alert("No selection range set. Please select text range first.");
+        alert("No selection range!");
         return;
       }
       let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
@@ -1510,36 +1514,31 @@
       let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
       let afterText = textVal.slice(userSelectionRange.end);
 
-      // مجرد إدراج بسيط؛ المستخدم قد يعدّل لاحقًا لو شاء
+      // إدراج بسيط (بدون اهتمام كبير بالتفاصيل)
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          let linkInner = desc ? desc : (selectedText ? selectedText : "LinkHere");
-          if(!val) val = "#";
-          finalInsert = `[${linkInner}](${val})`;
+          finalInsert = `[${desc || "Link"}](${val})`;
           break;
         case 'video':
-          let vidDesc = desc || "Video";
-          finalInsert = `\n<video src="${val}" controls>${vidDesc}</video>\n`;
+          finalInsert = `<video src="${val}" controls>${desc||'Video'}</video>`;
           break;
         case 'iframe':
-          let ifDesc = desc || "iFrame desc";
-          finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
+          finalInsert = `<iframe src="${val}" width="560" height="315"></iframe>`;
           break;
         case 'qids':
-          let qdesc = desc ? desc : (selectedText ? selectedText : "Question Trigger");
           let splitted = val.split(/\s+/).join(", ");
-          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
+          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${desc||'QIDs'}</span>`;
           break;
         case 'text':
-          finalInsert = val;
+          finalInsert = desc + val;
           break;
       }
 
       let replaced = "";
-      if(pos==="before"){
+      if(pos === "before"){
         replaced = beforeText + finalInsert + selectedText + afterText;
-      } else if(pos==="after"){
+      } else if(pos === "after"){
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         let mid = selectedText + finalInsert;
@@ -1585,7 +1584,7 @@
         let f = files[i];
         let reader = new FileReader();
         reader.onload = async function(e){
-          let base64Data = e.target.result.split(',')[1]; 
+          let base64Data = e.target.result.split(',')[1];
           let body = {
             name: f.name,
             base64: base64Data
@@ -1602,7 +1601,7 @@
             document.getElementById('uploadProgressBar').style.width = '100%';
             document.getElementById('uploadProgressBar').textContent = '100%';
             let li = document.createElement('li');
-            li.innerHTML = `Uploaded: <a href="${j.url}" target="_blank">${j.url}</a> 
+            li.innerHTML = `Uploaded: <a href="${j.url}" target="_blank">${j.url}</a>
               <button class="btn btn-sm btn-danger ms-2" onclick="deleteImage('${j.filePath}', this)">Delete</button>
               <button class="btn btn-sm btn-info ms-2" onclick="insertThisImageLink('${j.url}')">Insert</button>`;
             ul.appendChild(li);
