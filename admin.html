@@ -1154,7 +1154,7 @@
      *   تحويل الماركداون إلى HTML مع التعرف على صيغ: ( v: ... ), ( p: ... ), ( yv: ... ), bu(...), إلخ
      ****/
     function parseTriggersInMarkdown(mdText){
-      // نعالج أولا صيغة bu ( ...)
+      // نعالج أولا صيغة bu ( ...) → تُنشئ زر multi-trigger
       let buRegex = /bu\s*\(\s*([^)]*)\)/g;
       mdText = mdText.replace(buRegex, (match, inner) => {
         // مثال inner = "q: abc / v: link / p: link ..."
@@ -1188,35 +1188,22 @@
         Object.entries(dataAttrObj).forEach(([k,v]) => {
           if(v) dataString += ` ${k}="${v}"`;
         });
-        // نجعل النص الداخلي كما هو لعرضه مثلاً
+        // نترك نص "bu ( ... )" ظاهراً كعنوان للزر
         return `<span class="multi-trigger"${dataString}>bu ( ${inner} )</span>`;
       });
 
-      // نعالج بقية الصيغ: ( v: ... ) , ( p: ... ), ( yv: ... ), ( iv: ... ), ( q: ... ), ( l: ... ), ( t: ... )
+      // نعالج بقية الصيغ المنفردة: ( v: ... ) , ( p: ... ), ( yv: ... ), ( iv: ... ), ( q: ... ), ( l: ... ), ( t: ... )
       let inlineRegex = /\(\s*([^()]+)\s*\)/g; 
       mdText = mdText.replace(inlineRegex, (fullMatch, inner) => {
-        // لو سبق تحويله إلى <span ...> لا نعيده مرة أخرى.
-        if(fullMatch.includes('<span') || fullMatch.includes('</span>') || fullMatch.includes('<video') || fullMatch.includes('<img')) {
+        // لو سبق تحويله إلى <span ...> أو <video> أو <img> فلا نعيده مرة أخرى.
+        if(fullMatch.includes('<span') || fullMatch.includes('</span>') || 
+           fullMatch.includes('<video') || fullMatch.includes('<img')) {
           return fullMatch;
         }
-        // تفكيك على أساس "key: value" (يمكن وجود /)
+        // تفكيك على أساس "key: value" (يمكن وجود / لكن لو وجد / فهذا يعني multi بدون bu - نعالجه)
         let splitted = inner.split('/').map(x => x.trim());
-        let dataAttrObj = {};
-        let foundAnyKey = false;
-        splitted.forEach(seg => {
-          let cInd = seg.indexOf(':');
-          if(cInd > -1){
-            let key = seg.slice(0, cInd).trim();
-            let val = seg.slice(cInd+1).trim();
-            dataAttrObj[key] = val;
-            foundAnyKey = true;
-          }
-        });
-        if(!foundAnyKey) return fullMatch; // لا نغيره
-
-        // لو أكثر من واحد => multi-trigger أيضاً، لكن هذه الصيغة نادرة إن لم تبدأ بـ bu
         if(splitted.length > 1){
-          // نصنع multi-trigger
+          // نجعلها multi-trigger أيضاً، لكن بدون اسم "bu" ظاهر
           let mData = {
             'data-qids': '',
             'data-vid-src': '',
@@ -1246,35 +1233,36 @@
             if(v) dataString += ` ${k}="${v}"`;
           });
           return `<span class="multi-trigger"${dataString}>(${inner})</span>`;
-        } else {
-          // single key
-          let key = Object.keys(dataAttrObj)[0];
-          let val = dataAttrObj[key];
-          switch(key){
-            case 'v':
-              // نصنع <video src="val" controls="">Video</video>
-              return `<video src="${val}" controls="">Video</video>`;
-            case 'yv':
-              // <span class="video-trigger" data-vid-src="val">YouTube Video</span>
-              return `<span class="video-trigger" data-vid-src="${val}">YouTube Video</span>`;
-            case 'p':
-              // <img src="val" alt="Image" />
-              return `<img src="${val}" alt="Image" />`;
-            case 'iv':
-              // <span class="iframe-trigger" data-iframe-src="val">Embed iFrame</span>
-              return `<span class="iframe-trigger" data-iframe-src="${val}">Embed iFrame</span>`;
-            case 'q':
-              // <span class="question-trigger" data-qids="val">Question</span>
-              return `<span class="question-trigger" data-qids="${val}">Question</span>`;
-            case 'l':
-              // <span class="link-trigger" data-link-href="val">external link</span>
-              return `<span class="link-trigger" data-link-href="${val}">external link</span>`;
-            case 't':
-              // <span class="text-trigger" data-text-content="val">some text</span>
-              return `<span class="text-trigger" data-text-content="${val}">some text</span>`;
-            default:
-              return fullMatch;
-          }
+        }
+        // إذا كانت صيغة واحدة:
+        let cInd = inner.indexOf(':');
+        if(cInd === -1) return fullMatch; // ليس مفتاح:قيمة
+        let key = inner.slice(0, cInd).trim();
+        let val = inner.slice(cInd+1).trim();
+        switch(key){
+          case 'v':
+            // <video src="val" controls="">Video</video>
+            return `<video src="${val}" controls="">Video</video>`;
+          case 'yv':
+            // <span class="video-trigger" data-vid-src="val">YouTube Video</span>
+            return `<span class="video-trigger" data-vid-src="${val}">YouTube Video</span>`;
+          case 'p':
+            // <img src="val" alt="Image" />
+            return `<img src="${val}" alt="Image" />`;
+          case 'iv':
+            // <span class="iframe-trigger" data-iframe-src="val">Embed iFrame</span>
+            return `<span class="iframe-trigger" data-iframe-src="${val}">Embed iFrame</span>`;
+          case 'q':
+            // <span class="question-trigger" data-qids="val">Question</span>
+            return `<span class="question-trigger" data-qids="${val}">Question</span>`;
+          case 'l':
+            // <span class="link-trigger" data-link-href="val">external link</span>
+            return `<span class="link-trigger" data-link-href="${val}">external link</span>`;
+          case 't':
+            // <span class="text-trigger" data-text-content="val">some text</span>
+            return `<span class="text-trigger" data-text-content="${val}">some text</span>`;
+          default:
+            return fullMatch;
         }
       });
 
