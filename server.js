@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const fetch = require('node-fetch'); // سيستخدم whatwg-url داخليًا
+const fetch = require('node-fetch');
 const cors = require('cors');
 const path = require('path');
 
@@ -181,7 +181,6 @@ app.get('/api/get-content-file', async (req, res) => {
     try {
       parsed = JSON.parse(contentDecoded);
     } catch(err){
-      // إذا لم يكن JSON صالح، نضعه كنص
       parsed = { content: contentDecoded };
     }
     return res.json({ success:true, content: parsed, sha: j.sha });
@@ -203,7 +202,6 @@ app.post('/api/save-content-file', async (req, res) => {
       console.warn("Possible conflict - local sha != remote sha for", fullPath);
     }
 
-    // جلب الملف القديم للقراءة
     const urlGet = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const respGet = await fetch(urlGet, { headers: githubHeaders });
     if(respGet.status !== 200){
@@ -219,10 +217,8 @@ app.post('/api/save-content-file', async (req, res) => {
     } catch(e){
       parsedOld = { content: oldContent };
     }
-    // تحديث الحقل content في الـ JSON القديم
     parsedOld.content = newContent;
 
-    // حفظ المحتوى الجديد
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
     const urlPut = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/${fullPath}`;
     const putBody = {
@@ -261,7 +257,6 @@ app.post('/api/upload-image', async (req, res) => {
     let newFileName = Date.now() + '.' + extension;
     let pathFile = `pic/${newFileName}`;
 
-    // التأكد من عدم وجود ملف بنفس الاسم
     const fileSha = await getFileSha(IMAGES_REPO_NAME, pathFile);
     if(fileSha){
       newFileName = Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + extension;
@@ -280,7 +275,6 @@ app.post('/api/upload-image', async (req, res) => {
     });
     const j = await resp.json();
     if(j.content){
-      // رابط raw للصورة في GitHub
       const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${IMAGES_REPO_NAME}/main/pic/${newFileName}`;
       return res.json({ success:true, url: rawUrl, filePath: `pic/${newFileName}` });
     } else {
@@ -340,7 +334,6 @@ app.post('/api/rename-file', async (req, res) => {
       return res.json({ success:false, error:"File not found or no SHA for oldPath" });
     }
 
-    // نقرأ المحتوى القديم
     const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const respGet = await fetch(getUrl, { headers: githubHeaders });
     if(respGet.status !== 200){
@@ -360,7 +353,6 @@ app.post('/api/rename-file', async (req, res) => {
       parsedOld.title = newTitle;
     }
 
-    // حفظه باسم جديد
     const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
     const putUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const putBody = {
