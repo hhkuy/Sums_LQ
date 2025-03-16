@@ -97,12 +97,11 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-    /* إخفاء أزرار التريغرز والإبقاء على زر التمرير فقط */
     #floatManageTriggersBtn {
-      display: none !important;
+      display: none !important; /* إخفاء زر إدارة التريغرز */
     }
     #floatToolsBtn {
-      display: none !important;
+      display: none !important; /* إخفاء زر إضافة التريغرز */
     }
     #floatScrollBtn {
       position: fixed;
@@ -168,18 +167,62 @@
     .alert-success {
       margin-top: 10px;
     }
-    /* تحديد النص لإدخال الأدوات (بشكل بسيط) */
     .selection-guides {
       position: absolute;
       border: 2px dashed red;
       pointer-events: none;
       display: none;
     }
-    /* الرسالة الثابتة فوق زر Convert */
     #selectionDonePrompt {
       display: none;
       margin-top: 10px;
       text-align: center;
+    }
+
+    /* شكل الأزرار الخاصة بالتريغر إن أردت توضيحاً */
+    .trigger-button {
+      border: none;
+      background: #f1f1f1;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 5px;
+      padding: 0;
+    }
+    .trigger-button:hover {
+      background: #ddd;
+    }
+    /* مثال لأيقونات مختلفة حسب الفئة */
+    .video-trigger::before {
+      content: "🎬";
+      font-size: 18px;
+    }
+    .image-trigger::before {
+      content: "📷";
+      font-size: 18px;
+    }
+    .question-trigger::before {
+      content: "❓";
+      font-size: 18px;
+    }
+    .link-trigger::before {
+      content: "🔗";
+      font-size: 18px;
+    }
+    .text-trigger::before {
+      content: "📝";
+      font-size: 18px;
+    }
+    .iframe-trigger::before {
+      content: "🌐";
+      font-size: 18px;
+    }
+    .multi-trigger::before {
+      content: "🔎";
+      font-size: 18px;
     }
   </style>
 </head>
@@ -290,9 +333,9 @@
     </div>
   </div>
 
-  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
+  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة (مخفي) -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
-  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
+  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) (مخفي)-->
   <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
   <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
@@ -326,11 +369,10 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (مخفية بالأعلى) -->
+  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (مخفية) -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
-      <!-- هنا الأزرار المختلفة (معطلة حالياً) -->
       <div class="d-grid gap-2">
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('link')">Add Link</button>
         <button class="btn btn-outline-secondary" onclick="openTriggerForm('video')">Add Video</button>
@@ -345,7 +387,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (مخفية بالأعلى) -->
+  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (مخفية) -->
   <div class="modal-overlay" id="manageTriggersOverlay">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
@@ -506,7 +548,7 @@
     }
 
     /****
-     *                 إدارة exp_topics.json
+     * إدارة exp_topics.json
      ****/
     let expTopics = null;
     let topicsSha = null;
@@ -913,7 +955,7 @@
     }
 
     /****
-     *                 إدارة المحتوى
+     * إدارة المحتوى
      ****/
     let currentContentFile = null;
     let currentContentSha = null;
@@ -967,126 +1009,140 @@
         let contentObj = j.content;
         if(!contentObj.content) contentObj.content = "";
 
-        // قاعدة Turndown لاستعادة الـ Markdown من الـ HTML
+        // عند التحميل: نعكس التضمين/الأزرار إلى الماركداون
         let turndownService = new TurndownService();
 
-        // نعيد عكس تضميناتنا:
+        // قاعدة تحويل خاصة:
         turndownService.addRule('customTriggers', {
           filter: function (node) {
-            // يوجد احتمالان: إما زر (bu) أو تضمين مباشر
-            // للزر: إما single trigger أو multi-trigger
-            // للتضمين المباشر: قد يكون <video src> أو <img> أو <a> ... أو span.trigger ...
-            if(node.nodeName === 'SPAN') {
-              // لو كان multi-trigger أو أية class-trigger
-              if(node.classList.contains('multi-trigger') ||
-                 node.classList.contains('video-trigger') ||
-                 node.classList.contains('image-trigger') ||
-                 node.classList.contains('question-trigger') ||
-                 node.classList.contains('link-trigger') ||
-                 node.classList.contains('iframe-trigger') ||
-                 node.classList.contains('text-trigger')) {
-                return true;
-              }
+            // أي button.trigger-button أو أي تضمين مباشر (video, iframe, img, a, span)
+            if(node.nodeName === 'BUTTON' && node.classList.contains('trigger-button')){
+              return true;
             }
-            if(node.nodeName === 'VIDEO' ||
-               node.nodeName === 'IMG' ||
-               node.nodeName === 'A') {
+            if(['VIDEO','IMG','IFRAME','A','SPAN'].includes(node.nodeName)){
               return true;
             }
             return false;
           },
           replacement: function (content, node) {
-            // إذا كان multi-trigger (زر يحتوي على أكثر من نوع)
-            if(node.classList && node.classList.contains('multi-trigger')){
-              // نرمزها بـ bu (...)
-              // نفحص الـ data-attributes
-              let items = [];
-              if(node.hasAttribute('data-qids')){
-                let qval = node.getAttribute('data-qids').replace(/,/g, ' ');
-                items.push(`q: ${qval}`);
-              }
-              if(node.hasAttribute('data-vid-src')){
-                let v = node.getAttribute('data-vid-src');
-                if(v.includes('youtu')) items.push(`yv: ${v}`);
-                else items.push(`v: ${v}`);
-              }
-              if(node.hasAttribute('data-img-src')){
-                items.push(`p: ${node.getAttribute('data-img-src')}`);
-              }
-              if(node.hasAttribute('data-link-href')){
-                items.push(`l: ${node.getAttribute('data-link-href')}`);
-              }
-              if(node.hasAttribute('data-iframe-src')){
-                items.push(`iframe: ${node.getAttribute('data-iframe-src')}`);
-              }
-              if(node.hasAttribute('data-text-content')){
-                items.push(`t: ${node.getAttribute('data-text-content')}`);
-              }
-              let joined = items.join(' / ');
-              return `bu ( ${joined} )`;
-            }
-            // إذا كان زر بنوع واحد (مثلا video-trigger بدون بقية data)
-            if(node.classList && (
-              node.classList.contains('video-trigger') ||
-              node.classList.contains('image-trigger') ||
-              node.classList.contains('question-trigger') ||
-              node.classList.contains('link-trigger') ||
-              node.classList.contains('iframe-trigger') ||
-              node.classList.contains('text-trigger')
-            )) {
-              // نتحقق هل هو زر أم تضمين مباشر؟
-              // لو وجدنا أن النص الداخلي يبدأ بـ "bu (" في الأصل... لكن لا يوجد نص هنا
-              // نفحص لو كان عنوانه مثلاً "bu ( v:... )"
-              // الأسهل: إن كان node.innerHTML يحوي "bu (" نفترضه زر:
-              // لكن لتبسيط الأمر، نفحص data-bu="1" (لا نملكه!). إذن سنفترض:
-              // -- لو كان span.class=video-trigger لكنه بدون parent multi-trigger => هذا تضمين مباشر
-              // (المطلوب من السؤال: "بدون bu" يعني تضمين مباشر.)
-              let hasParentMulti = node.parentElement && node.parentElement.classList.contains('multi-trigger');
-              if(hasParentMulti) {
-                // حينها لا نعكسه لأنه بالفعل مدمج مع parent
-                return '';
-              } else {
-                // تضمين مباشر
-                if(node.classList.contains('video-trigger')){
-                  let link = node.getAttribute('data-vid-src');
-                  if(link.includes('youtu')){
-                    return `( yv: ${link} )`;
-                  } else {
-                    return `( v: ${link} )`;
-                  }
-                } else if(node.classList.contains('image-trigger')){
-                  let link = node.getAttribute('data-img-src');
-                  return `( p: ${link} )`;
-                } else if(node.classList.contains('question-trigger')){
+            // إذا كان زر (button.trigger-button):
+            if(node.nodeName === 'BUTTON' && node.classList.contains('trigger-button')){
+              let cls = node.classList; // مثلاً video-trigger, image-trigger, multi-trigger
+              // لو multi-trigger => bum
+              if(cls.contains('multi-trigger')){
+                // نجمع الـ data-attrs
+                let items = [];
+                if(node.hasAttribute('data-qids')){
                   let q = node.getAttribute('data-qids').replace(/,/g, ' ');
-                  return `( q: ${q} )`;
-                } else if(node.classList.contains('link-trigger')){
-                  let l = node.getAttribute('data-link-href');
-                  return `( l: ${l} )`;
-                } else if(node.classList.contains('iframe-trigger')){
-                  let f = node.getAttribute('data-iframe-src');
-                  return `( iframe: ${f} )`;
-                } else if(node.classList.contains('text-trigger')){
-                  let t = node.getAttribute('data-text-content');
-                  return `( t: ${t} )`;
+                  items.push(`q: ${q}`);
+                }
+                if(node.hasAttribute('data-vid-src')){
+                  let vLink = node.getAttribute('data-vid-src');
+                  // لو فيه youtu => buyv
+                  // لكنه multi => نضع "v: ..." فقط
+                  items.push(`v: ${vLink}`);
+                }
+                if(node.hasAttribute('data-img-src')){
+                  items.push(`p: ${node.getAttribute('data-img-src')}`);
+                }
+                if(node.hasAttribute('data-link-href')){
+                  items.push(`l: ${node.getAttribute('data-link-href')}`);
+                }
+                if(node.hasAttribute('data-text-content')){
+                  items.push(`t: ${node.getAttribute('data-text-content')}`);
+                }
+                if(node.hasAttribute('data-iframe-src')){
+                  items.push(`iframe: ${node.getAttribute('data-iframe-src')}`);
+                }
+                let joined = items.join(' / ');
+                return `( bum: ${joined} )`;
+              }
+              // وإلا زر مفرد
+              if(cls.contains('video-trigger')){
+                let link = node.getAttribute('data-vid-src')||'';
+                // هل هو youtube؟ لو أردت تمييزه بـ buyv
+                if(link.includes('youtu')) {
+                  return `( buyv: ${link} )`;
+                } else {
+                  return `( buv: ${link} )`;
                 }
               }
+              if(cls.contains('image-trigger')){
+                let link = node.getAttribute('data-img-src')||'';
+                return `( bup: ${link} )`;
+              }
+              if(cls.contains('question-trigger')){
+                let q = node.getAttribute('data-qids')||'';
+                q = q.replace(/,/g,' ');
+                return `( buq: ${q} )`;
+              }
+              if(cls.contains('link-trigger')){
+                let l = node.getAttribute('data-link-href')||'';
+                return `( bul: ${l} )`;
+              }
+              if(cls.contains('text-trigger')){
+                let t = node.getAttribute('data-text-content')||'';
+                return `( but: ${t} )`;
+              }
+              if(cls.contains('iframe-trigger')){
+                let f = node.getAttribute('data-iframe-src')||'';
+                return `( buiframe: ${f} )`; // أو أي صيغة تراها
+              }
             }
-            // لو كان <video> تضمين مباشر:
+
+            // أما لو كان تضمين مباشر
             if(node.nodeName === 'VIDEO'){
-              let src = node.getAttribute('src') || '';
+              let src = node.getAttribute('src')||'';
               return `( v: ${src} )`;
             }
-            // لو كان <img>:
+            if(node.nodeName === 'IFRAME'){
+              // نفترض أنه يوتيوب => yv
+              let src = node.getAttribute('src')||'';
+              return `( yv: ${src} )`;
+            }
             if(node.nodeName === 'IMG'){
-              let src = node.getAttribute('src') || '';
+              let src = node.getAttribute('src')||'';
               return `( p: ${src} )`;
             }
-            // لو كان <a>:
             if(node.nodeName === 'A'){
-              let href = node.getAttribute('href') || '';
+              let href = node.getAttribute('href')||'';
               return `( l: ${href} )`;
             }
+            if(node.nodeName === 'SPAN'){
+              // قد يكون question-trigger أو link-trigger... إن كان تضمين مباشر
+              // لكن لو زر => button
+              if(node.classList.contains('question-trigger')){
+                let q = node.getAttribute('data-qids')||'';
+                q = q.replace(/,/g, ' ');
+                return `( q: ${q} )`;
+              }
+              if(node.classList.contains('link-trigger')){
+                let l = node.getAttribute('data-link-href')||'';
+                return `( l: ${l} )`;
+              }
+              if(node.classList.contains('video-trigger')){
+                // قد يكون يوتيوب
+                let link = node.getAttribute('data-vid-src')||'';
+                if(link.includes('youtu')) {
+                  return `( yv: ${link} )`;
+                } else {
+                  return `( v: ${link} )`;
+                }
+              }
+              if(node.classList.contains('image-trigger')){
+                let link = node.getAttribute('data-img-src')||'';
+                return `( p: ${link} )`;
+              }
+              if(node.classList.contains('text-trigger')){
+                let txt = node.getAttribute('data-text-content')||'';
+                return `( t: ${txt} )`;
+              }
+              if(node.classList.contains('iframe-trigger')){
+                let ifr = node.getAttribute('data-iframe-src')||'';
+                return `( iframe: ${ifr} )`;
+              }
+            }
+
             return '';
           }
         });
@@ -1095,7 +1151,7 @@
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
         document.getElementById('contentLoadMsg').innerHTML = `<div class="alert alert-success">Content loaded successfully!</div>`;
-        await alert("تم تحميل ملف المحتوى بنجاح.");
+        await alert("تم تحميل ملف المحتوى بنجاح!");
         originalContentHtml = contentObj.content;
       } catch(e){
         console.error(e);
@@ -1137,7 +1193,7 @@
     }
 
     /****
-     *   محرر الماركداون
+     * محرر الماركداون
      ****/
     let currentDirection = 'ltr';
     function detectTextDirection(text) {
@@ -1153,100 +1209,101 @@
     }
 
     /**
-     * دالة خاصة بتحويل الصيغ إلى HTML:
-     * - إذا كانت الصيغة bu(...) => إنشاء زر (single أو multi).
-     * - إذا كانت فقط (...) => تضمين مباشر (بدون زر).
+     * parseCustomTriggers:
+     * - تضمين مباشر: ( v: ), ( yv: ), ( p: ), ( q: ), ( l: ), ( t: ), ( iframe: )...
+     * - زر: ( buv: ), ( buyv: ), ( bup: ), ( buq: ), ( bul: ), ( but: ), ( bum: )...
      */
     function parseCustomTriggers(mdText) {
       let result = mdText;
 
-      // أولاً: bu(...)
-      const buRegex = /bu\s*\(\s*([^)]*?)\)/g;
-      result = result.replace(buRegex, (fullMatch, inside) => {
-        // inside مثلاً: q: x y / v: https://... / p: ...
-        // نفصل على /
+      // 1) الأزرار المتعددة bum:
+      // شكل: ( bum: v: ... / p: ... / q: ... ) => <button class="trigger-button multi-trigger" data-vid-src="..." data-img-src="..." data-qids="..."></button>
+      // نستعمل Regex بسيط: \( bum:\s*([^)]+?)\)
+      // ثم نفصل على '/'
+      const bumRegex = /\(\s*bum:\s*([^)]*?)\)/g;
+      result = result.replace(bumRegex, (full, inside) => {
+        // inside مثلاً "v: link / q: id / p: link"
         let parts = inside.split('/');
         let dataAttrs = [];
-        let countTypes = 0;
-
         parts.forEach(part => {
           let trimmed = part.trim();
-          let colonIndex = trimmed.indexOf(':');
-          if(colonIndex > -1){
-            let key = trimmed.slice(0, colonIndex).trim();
-            let val = trimmed.slice(colonIndex+1).trim();
-            if(key === 'q'){
-              let arr = val.split(/\s+/).filter(Boolean);
-              let joined = arr.join(',');
-              dataAttrs.push(`data-qids="${joined}"`);
-              countTypes++;
-            } else if(key === 'v' || key === 'yv'){
-              dataAttrs.push(`data-vid-src="${val}"`);
-              countTypes++;
-            } else if(key === 'p'){
-              dataAttrs.push(`data-img-src="${val}"`);
-              countTypes++;
-            } else if(key === 'l'){
-              dataAttrs.push(`data-link-href="${val}"`);
-              countTypes++;
-            } else if(key === 't'){
-              dataAttrs.push(`data-text-content="${val}"`);
-              countTypes++;
-            } else if(key === 'iframe'){
-              dataAttrs.push(`data-iframe-src="${val}"`);
-              countTypes++;
-            }
+          let [k, ...rest] = trimmed.split(':');
+          if(!k || !rest.length) return;
+          k = k.trim(); 
+          let val = rest.join(':').trim();
+          if(!val) return;
+          if(k==='v'){
+            dataAttrs.push(`data-vid-src="${val}"`);
+          } else if(k==='q'){
+            let arr = val.split(/\s+/).filter(Boolean).join(',');
+            dataAttrs.push(`data-qids="${arr}"`);
+          } else if(k==='p'){
+            dataAttrs.push(`data-img-src="${val}"`);
+          } else if(k==='l'){
+            dataAttrs.push(`data-link-href="${val}"`);
+          } else if(k==='t'){
+            dataAttrs.push(`data-text-content="${val}"`);
+          } else if(k==='iframe'){
+            dataAttrs.push(`data-iframe-src="${val}"`);
+          } else if(k==='yv'){
+            // لو أراد اليوتيوب في متعدد
+            dataAttrs.push(`data-vid-src="${val}"`);
           }
         });
-
-        // لو أكتر من 1 => multi-trigger
-        if(countTypes > 1){
-          return `<span class="multi-trigger" ${dataAttrs.join(' ')}>${fullMatch}</span>`;
-        }
-        // لو واحد فقط => زر نوع مفرد
-        else if(countTypes === 1){
-          // نفحص أي نوع هو
-          // سنستخرجها من dataAttrs نفسها
-          // مثلاً لو وجدنا data-vid-src => video-trigger
-          let finalClass = '';
-          let dataStr = dataAttrs.join(' ');
-          if(dataStr.includes('data-vid-src')) finalClass = 'video-trigger';
-          else if(dataStr.includes('data-img-src')) finalClass = 'image-trigger';
-          else if(dataStr.includes('data-qids')) finalClass = 'question-trigger';
-          else if(dataStr.includes('data-link-href')) finalClass = 'link-trigger';
-          else if(dataStr.includes('data-iframe-src')) finalClass = 'iframe-trigger';
-          else if(dataStr.includes('data-text-content')) finalClass = 'text-trigger';
-          return `<span class="${finalClass}" ${dataStr}>${fullMatch}</span>`;
-        }
-        // لو لا شيء => نعيد النص كما هو
-        return fullMatch;
+        let dataStr = dataAttrs.join(' ');
+        return `<button class="trigger-button multi-trigger" ${dataStr}></button>`;
       });
 
-      // ثانياً: التضمين المباشر بدون bu(...)
-      // صيغة: ( key: val )
-      const singleRegex = /\(\s*([a-zA-Z]{1,6})\s*:\s*([^)]*?)\)/g;
-      result = result.replace(singleRegex, (m, key, val) => {
+      // 2) الأزرار المفردة: ( buv: ) ( buyv: ) ( bup: ) ( buq: ) ( bul: ) ( but: ) ... الخ
+      // Regex: \(\s*(buv|buyv|bup|buq|bul|but|buiframe)\s*:\s*([^)]+)\)
+      const singleBtnRegex = /\(\s*(buv|buyv|bup|buq|bul|but|buiframe)\s*:\s*([^)]*?)\)/g;
+      result = result.replace(singleBtnRegex, (full, key, val) => {
         let trimmedVal = val.trim();
         switch(key){
-          case 'v': // video mp4 direct
-            return `<video src="${trimmedVal}" controls></video>`;
-          case 'yv': // youtube link => span video-trigger
-            return `<span class="video-trigger" data-vid-src="${trimmedVal}"></span>`;
-          case 'p': // image
-            return `<img src="${trimmedVal}" alt=""/>`;
-          case 'q': // question
-            let arr = trimmedVal.split(/\s+/).filter(Boolean);
-            let joined = arr.join(',');
-            return `<span class="question-trigger" data-qids="${joined}"></span>`;
-          case 'l': // link
-            return `<a href="${trimmedVal}" target="_blank"></a>`;
-          case 't': // text
-            return `<span class="text-trigger" data-text-content="${trimmedVal}"></span>`;
-          case 'iframe':
-            return `<span class="iframe-trigger" data-iframe-src="${trimmedVal}"></span>`;
-          default:
-            return m; // لا نغيره
+          case 'buv':
+            return `<button class="trigger-button video-trigger" data-vid-src="${trimmedVal}"></button>`;
+          case 'buyv':
+            // زر يوتيوب
+            return `<button class="trigger-button video-trigger" data-vid-src="${trimmedVal}"></button>`;
+          case 'bup':
+            return `<button class="trigger-button image-trigger" data-img-src="${trimmedVal}"></button>`;
+          case 'buq':
+            let arr = trimmedVal.split(/\s+/).filter(Boolean).join(',');
+            return `<button class="trigger-button question-trigger" data-qids="${arr}"></button>`;
+          case 'bul':
+            return `<button class="trigger-button link-trigger" data-link-href="${trimmedVal}"></button>`;
+          case 'but':
+            return `<button class="trigger-button text-trigger" data-text-content="${trimmedVal}"></button>`;
+          case 'buiframe':
+            return `<button class="trigger-button iframe-trigger" data-iframe-src="${trimmedVal}"></button>`;
         }
+        return full;
+      });
+
+      // 3) التضمين المباشر: ( v: ), ( yv: ), ( p: ), ( q: ), ( l: ), ( t: ), ( iframe: ) ...
+      // مثل: ( v: link ) => <video src="..." controls></video>
+      // ( yv: link ) => <iframe src="..." ... ></iframe> (يوتيوب)
+      const directRegex = /\(\s*(v|yv|p|q|l|t|iframe)\s*:\s*([^)]*?)\)/g;
+      result = result.replace(directRegex, (full, key, val) => {
+        let trimmedVal = val.trim();
+        if(key==='v'){
+          return `<video src="${trimmedVal}" controls></video>`;
+        } else if(key==='yv'){
+          // تضمين يوتيوب
+          return `<iframe src="${trimmedVal}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`;
+        } else if(key==='p'){
+          return `<img src="${trimmedVal}" alt=""/>`;
+        } else if(key==='q'){
+          let arr = trimmedVal.split(/\s+/).filter(Boolean).join(',');
+          return `<span class="question-trigger" data-qids="${arr}"></span>`;
+        } else if(key==='l'){
+          return `<a href="${trimmedVal}" target="_blank"></a>`;
+        } else if(key==='t'){
+          return `<span class="text-trigger" data-text-content="${trimmedVal}"></span>`;
+        } else if(key==='iframe'){
+          return `<span class="iframe-trigger" data-iframe-src="${trimmedVal}"></span>`;
+        }
+        return full;
       });
 
       return result;
@@ -1350,10 +1407,9 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Then position</small>
             </div>
             <div class="mb-2">
-              <label>Insert Position:</label>
+              <label>Position:</label>
               <select id="triggerPosition" class="form-select">
                 <option value="before">Before</option>
                 <option value="after">After</option>
@@ -1364,7 +1420,7 @@
               <label>Link URL:</label>
               <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
             </div>
-            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">Insert</button>
           `;
           break;
         case 'video':
@@ -1376,10 +1432,9 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
-              <label>Insert Position:</label>
+              <label>Position:</label>
               <select id="triggerPosition" class="form-select">
                 <option value="before">Before</option>
                 <option value="after">After</option>
@@ -1390,7 +1445,7 @@
               <label>Video URL:</label>
               <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://...">
             </div>
-            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">Insert</button>
           `;
           break;
         case 'iframe':
@@ -1402,21 +1457,12 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
               <label>iFrame URL:</label>
               <input type="text" id="triggerLinkUrl" class="form-control" placeholder="https://youtube.com/embed/...">
             </div>
-            <div class="mb-2">
-              <label>Insert Position:</label>
-              <select id="triggerPosition" class="form-select">
-                <option value="before">Before</option>
-                <option value="after">After</option>
-                <option value="inside">Inside</option>
-              </select>
-            </div>
-            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">Insert</button>
           `;
           break;
         case 'qids':
@@ -1428,21 +1474,12 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
               <label>Q-IDs (space separated):</label>
               <input type="text" id="triggerLinkUrl" class="form-control" placeholder="q1 q2 q3">
             </div>
-            <div class="mb-2">
-              <label>Insert Position:</label>
-              <select id="triggerPosition" class="form-select">
-                <option value="before">Before</option>
-                <option value="after">After</option>
-                <option value="inside">Inside</option>
-              </select>
-            </div>
-            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">Insert</button>
           `;
           break;
         case 'text':
@@ -1454,21 +1491,12 @@
             </div>
             <div class="mb-2">
               <button class="btn btn-sm btn-info" onclick="startSelectionMode()">Select Text Range</button>
-              <small class="text-muted">Position</small>
             </div>
             <div class="mb-2">
               <label>Custom text:</label>
               <textarea id="triggerLinkUrl" class="form-control"></textarea>
             </div>
-            <div class="mb-2">
-              <label>Insert Position:</label>
-              <select id="triggerPosition" class="form-select">
-                <option value="before">Before</option>
-                <option value="after">After</option>
-                <option value="inside">Inside</option>
-              </select>
-            </div>
-            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">تم</button>
+            <button class="btn btn-primary w-100" onclick="applyTriggerInsertion()">Insert</button>
           `;
           break;
       }
@@ -1483,7 +1511,7 @@
       document.getElementById('triggerFormOverlay').style.display = 'none';
       selectionInProgress = true;
       document.getElementById('selectionDonePrompt').style.display = 'block';
-      alert("حدد النص في الماركداون.");
+      alert("Select text in the markdown input area.");
     }
 
     function selectionDoneYes(){
@@ -1500,7 +1528,7 @@
 
     function applyTriggerInsertion(){
       if(!userSelectionRange){
-        alert("No selection range!");
+        alert("No selection range set!");
         return;
       }
       let desc = document.getElementById('triggerDesc') ? document.getElementById('triggerDesc').value : "";
@@ -1514,31 +1542,13 @@
       let selectedText = textVal.slice(userSelectionRange.start, userSelectionRange.end);
       let afterText = textVal.slice(userSelectionRange.end);
 
-      // إدراج بسيط (بدون اهتمام كبير بالتفاصيل)
-      let finalInsert = "";
-      switch(currentTriggerType){
-        case 'link':
-          finalInsert = `[${desc || "Link"}](${val})`;
-          break;
-        case 'video':
-          finalInsert = `<video src="${val}" controls>${desc||'Video'}</video>`;
-          break;
-        case 'iframe':
-          finalInsert = `<iframe src="${val}" width="560" height="315"></iframe>`;
-          break;
-        case 'qids':
-          let splitted = val.split(/\s+/).join(", ");
-          finalInsert = `<span class="question-trigger" data-qids="${splitted}">${desc||'QIDs'}</span>`;
-          break;
-        case 'text':
-          finalInsert = desc + val;
-          break;
-      }
+      // مجرد إدراج بسيط
+      let finalInsert = `[${desc||"Link"}](${val})`; // كمثال
 
       let replaced = "";
-      if(pos === "before"){
+      if(pos==="before"){
         replaced = beforeText + finalInsert + selectedText + afterText;
-      } else if(pos === "after"){
+      } else if(pos==="after"){
         replaced = beforeText + selectedText + finalInsert + afterText;
       } else {
         let mid = selectedText + finalInsert;
