@@ -114,13 +114,13 @@
       top: 50%;
       right: 30px;
       transform: translateY(-140%);
-      /* أخفينا هذا الزر */
+      /* أخفينا زر إدارة الـtriggers */
       display: none !important;
     }
     #floatManageTriggersBtn:hover {
       opacity: 0.8;
     }
-    /* زر الأدوات العائم (للـ triggers وغيرها) */
+    /* زر الأدوات العائم */
     #floatToolsBtn {
       position: fixed;
       width: 50px;
@@ -138,7 +138,7 @@
       top: 50%;
       right: 30px;
       transform: translateY(-50%);
-      /* أخفينا هذا الزر */
+      /* أخفينا زر الأدوات */
       display: none !important;
     }
     #floatToolsBtn:hover {
@@ -331,9 +331,9 @@
     </div>
   </div>
 
-  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة -->
+  <!-- زر عائم لعرض كل الـ Tools & Triggers المدخلة (مخفي حالياً) -->
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
-  <!-- زر عائم للأدوات المختلفة (triggers, video, link, question-id ...) -->
+  <!-- زر عائم للأدوات المختلفة (مخفي) -->
   <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
   <!-- زر عائم للتمرير -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
@@ -367,7 +367,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة خاصة بـ Tools & Triggers -->
+  <!-- نافذة منبثقة خاصة بـ Tools & Triggers (مخفية) -->
   <div class="modal-overlay" id="toolsOverlay">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
@@ -386,7 +386,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لإدارة الأدوات المدخلة (تعديل/حذف/إعادة ترتيب) -->
+  <!-- نافذة منبثقة لإدارة الأدوات (مخفية) -->
   <div class="modal-overlay" id="manageTriggersOverlay">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
@@ -397,7 +397,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد -->
+  <!-- نافذة منبثقة لخطوات إضافة Trigger محدد (مخفية) -->
   <div class="modal-overlay" id="triggerFormOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
@@ -408,7 +408,7 @@
     </div>
   </div>
 
-  <!-- نافذة منبثقة لرفع الصور -->
+  <!-- نافذة منبثقة لرفع الصور (مخفية) -->
   <div class="modal-overlay" id="imageUploadOverlay">
     <div class="modal-box" style="text-align: left;">
       <h3>Upload or Insert Image</h3>
@@ -1009,100 +1009,100 @@
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
         
-        // سنضيف قاعدة تحويل HTML إلى Markdown مع عكس الـ triggers
+        // تحويل HTML إلى Markdown (Turndown) مع قواعد لعكس العناصر الخاصة بنا:
         let turndownService = new TurndownService();
 
-        // إضافة قواعد مخصصة لعكس الـ triggers إلى صيغتنا
-        turndownService.addRule('spanTriggers', {
-          filter: function(node, options){
-            return (
-              node.nodeName === 'SPAN' &&
-              (
-                node.classList.contains('video-trigger') ||
-                node.classList.contains('iframe-trigger') ||
-                node.classList.contains('image-trigger') ||
-                node.classList.contains('question-trigger') ||
-                node.classList.contains('text-trigger') ||
-                node.classList.contains('link-trigger') ||
-                node.classList.contains('multi-trigger')
-              )
-            );
-          },
-          replacement: function(content, node, options){
-            // نجمع المعلومات من الـ data-attributes
-            let classes = node.className;
-            let textInside = node.textContent || '';
-            // لأننا حفظنا الأصل مثل ( v: ... ) أو ( yv: ... ) ... الخ
-            // في العادة سيكون النص نفسه محفوظاً، لكن لو نريد عكسها بشكل أدق من الداتا:
-            if(classes.includes('multi-trigger')){
-              // يوجد عدة خصائص data-.... فلنقسّمها
-              // قد يحتوي على data-qids, data-img-src, data-link-href, data-vid-src, data-iframe-src, data-text-content
-              let triggersArr = [];
-              if(node.hasAttribute('data-qids')){
-                let qval = node.getAttribute('data-qids');
-                if(qval) triggersArr.push(`q: ${qval}`);
+        // قاعدة خاصة لعكس الأكواد (نحو ( v: ... ) إلخ):
+        turndownService.addRule('customTriggers', {
+          filter: function (node) {
+            // إن كان node عبارة عن <video> أو <img> أو <span> من الأصناف trigger
+            if(node.nodeName === 'VIDEO') return true;
+            if(node.nodeName === 'IMG') return true;
+            if(node.nodeName === 'SPAN') {
+              const cls = node.className || '';
+              if(
+                cls.includes('video-trigger') ||
+                cls.includes('iframe-trigger') ||
+                cls.includes('image-trigger') ||
+                cls.includes('question-trigger') ||
+                cls.includes('text-trigger') ||
+                cls.includes('link-trigger') ||
+                cls.includes('multi-trigger')
+              ) {
+                return true;
               }
-              if(node.hasAttribute('data-img-src')){
-                let pval = node.getAttribute('data-img-src');
-                if(pval) triggersArr.push(`p: ${pval}`);
+            }
+            return false;
+          },
+          replacement: function (content, node) {
+            // إذا كان <video src="..." ... >
+            if(node.nodeName === 'VIDEO'){
+              let src = node.getAttribute('src') || '';
+              // نعكسها إلى ( v: src )
+              return `( v: ${src} )`;
+            }
+            // إذا كان <img src="..." ...>
+            if(node.nodeName === 'IMG'){
+              let src = node.getAttribute('src') || '';
+              return `( p: ${src} )`;
+            }
+            // لو كان span:
+            let cls = node.className;
+            if(cls.includes('multi-trigger')){
+              // نجمع كل data-... في شكل bu ( x:... / y:... )
+              let dataParts = [];
+              if(node.hasAttribute('data-qids')){
+                dataParts.push(`q: ${node.getAttribute('data-qids')}`);
               }
               if(node.hasAttribute('data-vid-src')){
-                let vid = node.getAttribute('data-vid-src');
-                // لو فيه يوتيوب نقوم بإخراجها بصيغة yv، وإلا v
-                if(vid.includes('youtu')) triggersArr.push(`yv: ${vid}`);
-                else triggersArr.push(`v: ${vid}`);
+                let link = node.getAttribute('data-vid-src');
+                if(link.includes('youtu')) dataParts.push(`yv: ${link}`);
+                else dataParts.push(`v: ${link}`);
               }
-              if(node.hasAttribute('data-iframe-src')){
-                let ifr = node.getAttribute('data-iframe-src');
-                triggersArr.push(`iv: ${ifr}`);
+              if(node.hasAttribute('data-img-src')){
+                dataParts.push(`p: ${node.getAttribute('data-img-src')}`);
               }
               if(node.hasAttribute('data-link-href')){
-                let lval = node.getAttribute('data-link-href');
-                triggersArr.push(`l: ${lval}`);
+                dataParts.push(`l: ${node.getAttribute('data-link-href')}`);
+              }
+              if(node.hasAttribute('data-iframe-src')){
+                dataParts.push(`iv: ${node.getAttribute('data-iframe-src')}`);
               }
               if(node.hasAttribute('data-text-content')){
-                let tval = node.getAttribute('data-text-content');
-                triggersArr.push(`t: ${tval}`);
+                dataParts.push(`t: ${node.getAttribute('data-text-content')}`);
               }
-              // نعيدها على صيغة:
-              // bu ( q: ... / yv: ... / p: ... ) وهكذا.
-              let joined = triggersArr.join(' / ');
+              let joined = dataParts.join(' / ');
               return `bu ( ${joined} )`;
+            } 
+            else if(cls.includes('video-trigger')){
+              let src = node.getAttribute('data-vid-src') || '';
+              if(src.includes('youtu')) return `( yv: ${src} )`;
+              return `( v: ${src} )`;
             }
-            else if(classes.includes('video-trigger')){
-              let vid = node.getAttribute('data-vid-src') || '';
-              if(vid.includes('youtu')){
-                return `( yv: ${vid} )`;
-              } else {
-                return `( v: ${vid} )`;
-              }
+            else if(cls.includes('iframe-trigger')){
+              let src = node.getAttribute('data-iframe-src') || '';
+              return `( iv: ${src} )`;
             }
-            else if(classes.includes('iframe-trigger')){
-              let ifr = node.getAttribute('data-iframe-src') || '';
-              // سنعيدها كـ ( iv: ... )
-              return `( iv: ${ifr} )`;
+            else if(cls.includes('image-trigger')){
+              let src = node.getAttribute('data-img-src') || '';
+              return `( p: ${src} )`;
             }
-            else if(classes.includes('image-trigger')){
-              let img = node.getAttribute('data-img-src') || '';
-              return `( p: ${img} )`;
+            else if(cls.includes('question-trigger')){
+              let q = node.getAttribute('data-qids') || '';
+              return `( q: ${q} )`;
             }
-            else if(classes.includes('question-trigger')){
-              let qids = node.getAttribute('data-qids') || '';
-              return `( q: ${qids} )`;
+            else if(cls.includes('text-trigger')){
+              let t = node.getAttribute('data-text-content') || '';
+              return `( t: ${t} )`;
             }
-            else if(classes.includes('text-trigger')){
-              let tx = node.getAttribute('data-text-content') || '';
-              return `( t: ${tx} )`;
+            else if(cls.includes('link-trigger')){
+              let l = node.getAttribute('data-link-href') || '';
+              return `( l: ${l} )`;
             }
-            else if(classes.includes('link-trigger')){
-              let lnk = node.getAttribute('data-link-href') || '';
-              return `( l: ${lnk} )`;
-            }
-            return textInside; 
+            return content;
           }
         });
 
-        // الآن ننتج الماركداون
         let md = turndownService.turndown(contentObj.content);
         document.getElementById('markdown-input').value = md;
         document.getElementById('markdown-result').innerHTML = contentObj.content;
@@ -1151,33 +1151,14 @@
     }
 
     /****
-     *   معالجة الصيغ الخاصة بـ triggers في الماركداون قبل تحويله إلى HTML
+     *   تحويل الماركداون إلى HTML مع التعرف على صيغ: ( v: ... ), ( p: ... ), ( yv: ... ), bu(...), إلخ
      ****/
     function parseTriggersInMarkdown(mdText){
-      // سنبحث عن أي مطابقات لـ "bu ( ... )" أو للصيغة العامة "( x: ... )" أو "( x: ... / y: ... )"
-      // وسنحوّلها إلى span بعناصر data-.. مناسبة حسب نوع x أو وجود عدة مفاتيح.
-      // خطوة: نفصل "bu" عن "غير bu". إن كانت الصيغة "bu (" فهنا زر/متعدد triggers.
-      // خلاف ذلك، هي inline triggers.
-      // التعبير المنتظم التالي بسيط وقد لا يغطي كل التعقيدات، لكنه مناسب للأمثلة:
-      
-      // أولا نعالج صيغة bu (...) :
+      // نعالج أولا صيغة bu ( ...)
       let buRegex = /bu\s*\(\s*([^)]*)\)/g;
       mdText = mdText.replace(buRegex, (match, inner) => {
-        // inner قد يكون: q: something / yv: link ... إلخ
-        // نقسمه على / لو جود متعددة
+        // مثال inner = "q: abc / v: link / p: link ..."
         let parts = inner.split('/').map(x => x.trim());
-        let dataAttrs = [];
-        let textContent = `bu ( ${inner} )`; // هذا الذي سيظهر كنص داخلي
-        let isMulti = false;
-        if(parts.length > 1) {
-          isMulti = true;
-        }
-        // لو لم نجد إلا جزء واحد وفيه أكثر من مفتاح، سنعامله أيضاً كمشترك.
-        // لكن الأشهر أنه لو أكثر من مفتاح → عدة / مفصولة.
-        let finalClass = "multi-trigger";
-        let finalTag = "span";
-        let foundQids = false;
-
         let dataAttrObj = {
           'data-qids': '',
           'data-vid-src': '',
@@ -1186,174 +1167,113 @@
           'data-iframe-src': '',
           'data-text-content': ''
         };
-
-        // نفك كل جزء:
         parts.forEach(p => {
-          // قد يكون p = "q: anat-lowe-q3 anat-lowe-q4"
-          // أو p = "yv: https://youtu..."
-          // نفصل عند أول :
-          let colonIndex = p.indexOf(':');
-          if(colonIndex > -1){
-            let key = p.slice(0, colonIndex).trim();
-            let val = p.slice(colonIndex+1).trim();
+          let cInd = p.indexOf(':');
+          if(cInd > -1){
+            let key = p.slice(0, cInd).trim();
+            let val = p.slice(cInd+1).trim();
             switch(key){
-              case 'q':
-                dataAttrObj['data-qids'] = val;
-                break;
-              case 'yv':
-                dataAttrObj['data-vid-src'] = val; 
-                break;
-              case 'v':
-                dataAttrObj['data-vid-src'] = val;
-                break;
-              case 'p':
-                dataAttrObj['data-img-src'] = val;
-                break;
-              case 'l':
-                dataAttrObj['data-link-href'] = val;
-                break;
-              case 'iv':
-              case 'yv-embed': // إن وجدت
-                dataAttrObj['data-iframe-src'] = val;
-                break;
-              case 't':
-                dataAttrObj['data-text-content'] = val;
-                break;
-              default:
-                // مفتاح غير معروف
-                break;
+              case 'q': dataAttrObj['data-qids'] = val; break;
+              case 'yv': dataAttrObj['data-vid-src'] = val; break;
+              case 'v': dataAttrObj['data-vid-src'] = val; break;
+              case 'p': dataAttrObj['data-img-src'] = val; break;
+              case 'l': dataAttrObj['data-link-href'] = val; break;
+              case 'iv': dataAttrObj['data-iframe-src'] = val; break;
+              case 't': dataAttrObj['data-text-content'] = val; break;
             }
           }
         });
-
-        // نتأكد هل حقاً متعدد أم أحادي:
-        // لو جمع أكثر من قيمة → multi. غير ذلك → قد يكون single-trigger
-        let usedKeys = 0;
-        Object.keys(dataAttrObj).forEach(k => {
-          if(dataAttrObj[k]) usedKeys++;
-        });
-        if(usedKeys === 1){
-          // إذا هو أحادي مفتاح ولكن تم كتابته بصيغة bu (...)
-          // نظهره كـ زر -> يبقى "multi-trigger" أسهل، أو نغيره إلى نوع محدد؟
-          // الطلب يقول "bu تعني زر متعدد" حتى ولو مفتاح واحد، سيظل زر.
-          // فنتركه multi-trigger كي يبقى زر.
-        }
-
-        // نكون عنصر span بالـ dataAttrs
+        // ننشئ <span class="multi-trigger" data-...>bu ( ... )</span>
         let dataString = '';
         Object.entries(dataAttrObj).forEach(([k,v]) => {
           if(v) dataString += ` ${k}="${v}"`;
         });
-        return `<span class="${finalClass}"${dataString}>${textContent}</span>`;
+        // نجعل النص الداخلي كما هو لعرضه مثلاً
+        return `<span class="multi-trigger"${dataString}>bu ( ${inner} )</span>`;
       });
 
-      // الآن نعالج أي صيغة عامة:  ( x: ... )  مع إمكانية وجود / لفصل متعدد
-      // بشرط ألا تكون قد سبق تحويلها (أي لا تحتوي على <span)
+      // نعالج بقية الصيغ: ( v: ... ) , ( p: ... ), ( yv: ... ), ( iv: ... ), ( q: ... ), ( l: ... ), ( t: ... )
       let inlineRegex = /\(\s*([^()]+)\s*\)/g; 
-      // سيجلب أي ( ... ) ، لكن قد يدخل ضمنه نصوص مختلفة
-      // لذلك نتحقق بالداخل إذا فيه نمط المفتاح:
       mdText = mdText.replace(inlineRegex, (fullMatch, inner) => {
-        // تأكد ألا يكون fullMatch قد نتج عن عملية سابقة (أي أنه داخل تاغ span)
-        if(fullMatch.includes('<span') || fullMatch.includes('</span')) {
-          // يعني سبق تحويله
+        // لو سبق تحويله إلى <span ...> لا نعيده مرة أخرى.
+        if(fullMatch.includes('<span') || fullMatch.includes('</span>') || fullMatch.includes('<video') || fullMatch.includes('<img')) {
           return fullMatch;
         }
-
-        // نتحقق إذا في النص inner أي من مفاتيحنا المعروفة: q:, yv:, v:, p:, t:, l:, iv:
-        // أو أنه تفريعات عدة / 
+        // تفكيك على أساس "key: value" (يمكن وجود /)
         let splitted = inner.split('/').map(x => x.trim());
-        let foundTrigger = false;
-        let dataAttrObj = {
-          'data-qids': '',
-          'data-vid-src': '',
-          'data-img-src': '',
-          'data-link-href': '',
-          'data-iframe-src': '',
-          'data-text-content': ''
-        };
-        let isMulti = splitted.length > 1;
-        splitted.forEach(segment => {
-          let cInd = segment.indexOf(':');
+        let dataAttrObj = {};
+        let foundAnyKey = false;
+        splitted.forEach(seg => {
+          let cInd = seg.indexOf(':');
           if(cInd > -1){
-            let key = segment.slice(0, cInd).trim();
-            let val = segment.slice(cInd+1).trim();
-            switch(key){
-              case 'q':
-                dataAttrObj['data-qids'] = val;
-                foundTrigger = true;
-                break;
-              case 'yv':
-                dataAttrObj['data-vid-src'] = val; 
-                foundTrigger = true;
-                break;
-              case 'v':
-                dataAttrObj['data-vid-src'] = val;
-                foundTrigger = true;
-                break;
-              case 'p':
-                dataAttrObj['data-img-src'] = val;
-                foundTrigger = true;
-                break;
-              case 'l':
-                dataAttrObj['data-link-href'] = val;
-                foundTrigger = true;
-                break;
-              case 'iv':
-                dataAttrObj['data-iframe-src'] = val;
-                foundTrigger = true;
-                break;
-              case 't':
-                dataAttrObj['data-text-content'] = val;
-                foundTrigger = true;
-                break;
-            }
+            let key = seg.slice(0, cInd).trim();
+            let val = seg.slice(cInd+1).trim();
+            dataAttrObj[key] = val;
+            foundAnyKey = true;
           }
         });
-        if(!foundTrigger){
-          // يعني لم يجد شيئاً من مفاتيحنا. إذن نتركه كما هو
-          return fullMatch;
-        }
-        // إن وجدنا مفاتيح:
-        // لو كان أكثر من مفتاح -> multi-trigger، وإلا نوع واحد
-        let usedKeys = 0;
-        Object.keys(dataAttrObj).forEach(k => {
-          if(dataAttrObj[k]) usedKeys++;
-        });
-        // لو أكثر من واحد => multi-trigger
-        // لو واحد => نوعه محدد
-        if(usedKeys > 1){
-          // multi
+        if(!foundAnyKey) return fullMatch; // لا نغيره
+
+        // لو أكثر من واحد => multi-trigger أيضاً، لكن هذه الصيغة نادرة إن لم تبدأ بـ bu
+        if(splitted.length > 1){
+          // نصنع multi-trigger
+          let mData = {
+            'data-qids': '',
+            'data-vid-src': '',
+            'data-img-src': '',
+            'data-link-href': '',
+            'data-iframe-src': '',
+            'data-text-content': ''
+          };
+          splitted.forEach(p => {
+            let cInd = p.indexOf(':');
+            if(cInd > -1){
+              let key = p.slice(0, cInd).trim();
+              let val = p.slice(cInd+1).trim();
+              switch(key){
+                case 'q': mData['data-qids'] = val; break;
+                case 'yv': mData['data-vid-src'] = val; break;
+                case 'v': mData['data-vid-src'] = val; break;
+                case 'p': mData['data-img-src'] = val; break;
+                case 'l': mData['data-link-href'] = val; break;
+                case 'iv': mData['data-iframe-src'] = val; break;
+                case 't': mData['data-text-content'] = val; break;
+              }
+            }
+          });
           let dataString = '';
-          Object.entries(dataAttrObj).forEach(([k,v]) => {
+          Object.entries(mData).forEach(([k,v]) => {
             if(v) dataString += ` ${k}="${v}"`;
           });
           return `<span class="multi-trigger"${dataString}>(${inner})</span>`;
         } else {
-          // single
-          // نحدد حسب الحقل المعبأ
-          // إن كان data-vid-src -> video-trigger
-          // إن كان youtube -> نعامله كـ video-trigger يُفسّر لاحقاً
-          if(dataAttrObj['data-vid-src']){
-            let val = dataAttrObj['data-vid-src'];
-            return `<span class="video-trigger" data-vid-src="${val}">(${inner})</span>`;
-          } else if(dataAttrObj['data-img-src']){
-            let val = dataAttrObj['data-img-src'];
-            return `<span class="image-trigger" data-img-src="${val}">(${inner})</span>`;
-          } else if(dataAttrObj['data-qids']){
-            let val = dataAttrObj['data-qids'];
-            return `<span class="question-trigger" data-qids="${val}">(${inner})</span>`;
-          } else if(dataAttrObj['data-link-href']){
-            let val = dataAttrObj['data-link-href'];
-            return `<span class="link-trigger" data-link-href="${val}">(${inner})</span>`;
-          } else if(dataAttrObj['data-iframe-src']){
-            let val = dataAttrObj['data-iframe-src'];
-            return `<span class="iframe-trigger" data-iframe-src="${val}">(${inner})</span>`;
-          } else if(dataAttrObj['data-text-content']){
-            let val = dataAttrObj['data-text-content'];
-            return `<span class="text-trigger" data-text-content="${val}">(${inner})</span>`;
-          } else {
-            // لو وصل هنا فربما خطأ
-            return fullMatch;
+          // single key
+          let key = Object.keys(dataAttrObj)[0];
+          let val = dataAttrObj[key];
+          switch(key){
+            case 'v':
+              // نصنع <video src="val" controls="">Video</video>
+              return `<video src="${val}" controls="">Video</video>`;
+            case 'yv':
+              // <span class="video-trigger" data-vid-src="val">YouTube Video</span>
+              return `<span class="video-trigger" data-vid-src="${val}">YouTube Video</span>`;
+            case 'p':
+              // <img src="val" alt="Image" />
+              return `<img src="${val}" alt="Image" />`;
+            case 'iv':
+              // <span class="iframe-trigger" data-iframe-src="val">Embed iFrame</span>
+              return `<span class="iframe-trigger" data-iframe-src="${val}">Embed iFrame</span>`;
+            case 'q':
+              // <span class="question-trigger" data-qids="val">Question</span>
+              return `<span class="question-trigger" data-qids="${val}">Question</span>`;
+            case 'l':
+              // <span class="link-trigger" data-link-href="val">external link</span>
+              return `<span class="link-trigger" data-link-href="${val}">external link</span>`;
+            case 't':
+              // <span class="text-trigger" data-text-content="val">some text</span>
+              return `<span class="text-trigger" data-text-content="${val}">some text</span>`;
+            default:
+              return fullMatch;
           }
         }
       });
@@ -1363,11 +1283,10 @@
 
     function convertMarkdown() {
       let markdownText = document.getElementById('markdown-input').value;
-      // أولاً نعالج الصيغ الخاصة بالـ triggers قبل تحويلها إلى HTML
-      markdownText = parseTriggersInMarkdown(markdownText);
-
-      // الآن نحول إلى HTML بعناية
-      const htmlContent = marked.parse(markdownText);
+      // نعالج صيغ ( v: ... ) إلخ ونحوّلها إلى العناصر المطلوبة
+      let processedMD = parseTriggersInMarkdown(markdownText);
+      // ثم نحوّله إلى HTML باستخدام marked
+      const htmlContent = marked.parse(processedMD);
       document.getElementById('markdown-result').innerHTML = htmlContent;
       currentDirection = detectTextDirection(markdownText);
       document.getElementById('markdown-result').style.direction = currentDirection;
@@ -1425,12 +1344,11 @@
     }
 
     /****
-     * زر عائم لأدوات الـ triggers
+     * زر عائم (مخفي) - باقي الدوال لا تزال موجودة
      ****/
     let selectionInProgress = false;
     function handleToolsModalClick(){
       if(selectionInProgress){
-        // بدلاً من النافذة المنبثقة confirm، نظهر القسم فوق زر Convert
         document.getElementById('selectionDonePrompt').style.display = 'block';
       } else {
         openToolsModal();
@@ -1442,15 +1360,9 @@
     function closeToolsModal(){
       document.getElementById('toolsOverlay').style.display = 'none';
     }
-
-    /****
-     * زر عائم لإدارة/تعديل جميع الـ triggers المضافة
-     ****/
     function openManageTriggersModal(){
       let overlay = document.getElementById('manageTriggersOverlay');
       let container = document.getElementById('insertedTriggersList');
-      container.innerHTML = "";
-      let html = document.getElementById('markdown-result').innerHTML;
       container.innerHTML = "Here we can list triggers found in the HTML, reorder or delete them... (Feature in progress)";
       overlay.style.display = 'flex';
     }
@@ -1459,11 +1371,8 @@
     }
 
     let userSelectionRange = null;
-
-    /****
-     * واجهة إضافة Trigger (بالأسلوب القديم؛ بقيت كما هي)
-     ****/
     let currentTriggerType = null;
+
     function openTriggerForm(type){
       closeToolsModal();
       currentTriggerType = type;
@@ -1473,6 +1382,7 @@
       overlay.style.display = 'flex';
       contentEl.innerHTML = "";
 
+      // (هذه الأدوات قديمة، أبقيناها دون تغيير)
       let formHtml = "";
       switch(type){
         case 'link':
@@ -1614,24 +1524,19 @@
     }
 
     function startSelectionMode(){
-      // نخفي نافذة formOverlay
       document.getElementById('triggerFormOverlay').style.display = 'none';
-      // نُظهر الرسالة "Finished selection?" (لو كانت مخفية)
       selectionInProgress = true;
       document.getElementById('selectionDonePrompt').style.display = 'block';
       alert("قم بتحديد النص في خانة الماركداون.");
     }
 
     function selectionDoneYes(){
-      // نخفي prompt
       document.getElementById('selectionDonePrompt').style.display = 'none';
-      // نخزن range
       let ta = document.getElementById('markdown-input');
       let start = ta.selectionStart;
       let end = ta.selectionEnd;
       userSelectionRange = {start, end};
       selectionInProgress = false;
-      // نعيد فتح نافذة الـ triggerForm بنفس الحالة
       document.getElementById('triggerFormOverlay').style.display = 'flex';
     }
     function selectionDoneNo(){
@@ -1658,7 +1563,7 @@
       let finalInsert = "";
       switch(currentTriggerType){
         case 'link':
-          let linkInner = desc ? selectedText || desc : "LinkHere";
+          let linkInner = desc ? (selectedText || desc) : "LinkHere";
           if(!val) val = "#";
           finalInsert = `[${linkInner}](${val})`;
           break;
@@ -1671,7 +1576,7 @@
           finalInsert = `\n<div>\n<h4>${ifDesc}</h4>\n<iframe src="${val}" width="560" height="315" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>\n`;
           break;
         case 'qids':
-          let qdesc = desc ? selectedText || desc : "Question Trigger";
+          let qdesc = desc ? (selectedText || desc) : "Question Trigger";
           let splitted = val.split(/\s+/).join(", ");
           finalInsert = `<span class="question-trigger" data-qids="${splitted}">${qdesc}</span>`;
           break;
