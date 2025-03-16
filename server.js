@@ -15,16 +15,19 @@ console.log("GITHUB_USER:", process.env.GITHUB_USER);
 console.log("MAIN_REPO_NAME:", process.env.MAIN_REPO_NAME);
 console.log("IMAGES_REPO_NAME:", process.env.IMAGES_REPO_NAME);
 
+// جلب متغيرات البيئة
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_USER = process.env.GITHUB_USER;
 const MAIN_REPO_NAME = process.env.MAIN_REPO_NAME;
 const IMAGES_REPO_NAME = process.env.IMAGES_REPO_NAME;
 
+// ترويسات GitHub
 const githubHeaders = {
   'Authorization': `Bearer ${GITHUB_TOKEN}`,
   'Accept': 'application/vnd.github+json'
 };
 
+/** دالة مساعدة لجلب SHA لملف في GitHub */
 async function getFileSha(repoName, filePath){
   const url = `https://api.github.com/repos/${GITHUB_USER}/${repoName}/contents/${filePath}`;
   const res = await fetch(url, { headers: githubHeaders });
@@ -35,7 +38,9 @@ async function getFileSha(repoName, filePath){
   return null;
 }
 
-/** API endpoints **/
+/** =============== مسارات الـ API =============== */
+
+/** 1) جلب exp_topics.json */
 app.get('/api/get-exp-topics', async (req, res) => {
   try {
     const pathFile = `exp_data/exp_topics.json`;
@@ -56,6 +61,7 @@ app.get('/api/get-exp-topics', async (req, res) => {
   }
 });
 
+/** 2) حفظ exp_topics.json */
 app.post('/api/save-exp-topics', async (req, res) => {
   try {
     const { content, sha } = req.body;
@@ -85,6 +91,7 @@ app.post('/api/save-exp-topics', async (req, res) => {
   }
 });
 
+/** 3) إنشاء ملف جديد في exp_data */
 app.post('/api/add-file', async (req, res) => {
   try {
     const { fileName, newJsonTitle } = req.body;
@@ -118,12 +125,13 @@ app.post('/api/add-file', async (req, res) => {
   }
 });
 
+/** 4) حذف ملف من المستودع الرئيسي */
 app.delete('/api/delete-file', async (req, res) => {
   try {
-    const filePath = req.query.filePath;
+    const filePath = req.query.filePath; 
     if(!filePath) return res.json({ success:false, error:'No filePath provided.' });
 
-    const fullPath = filePath;
+    const fullPath = filePath; 
     const sha = await getFileSha(MAIN_REPO_NAME, fullPath);
     if(!sha) {
       console.error("delete-file: file not found or no SHA for", fullPath);
@@ -153,6 +161,7 @@ app.delete('/api/delete-file', async (req, res) => {
   }
 });
 
+/** 5) جلب ملف محتوى (dataFile) */
 app.get('/api/get-content-file', async (req, res) => {
   try {
     const shortFilePath = req.query.filePath;
@@ -181,6 +190,7 @@ app.get('/api/get-content-file', async (req, res) => {
   }
 });
 
+/** 6) حفظ ملف محتوى (dataFile) */
 app.post('/api/save-content-file', async (req, res) => {
   try {
     const { filePath, sha, newContent } = req.body;
@@ -234,6 +244,7 @@ app.post('/api/save-content-file', async (req, res) => {
   }
 });
 
+/** 7) رفع صورة إلى مستودع الصور */
 app.post('/api/upload-image', async (req, res) => {
   try {
     const { name, base64 } = req.body;
@@ -241,7 +252,7 @@ app.post('/api/upload-image', async (req, res) => {
 
     let extension = name.split('.').pop().toLowerCase();
     if(!['jpg','jpeg','png','gif','webp'].includes(extension)){
-      extension='png';
+      extension = 'png';
     }
     let newFileName = Date.now() + '.' + extension;
     let pathFile = `pic/${newFileName}`;
@@ -276,6 +287,7 @@ app.post('/api/upload-image', async (req, res) => {
   }
 });
 
+/** 8) حذف صورة من مستودع الصور */
 app.delete('/api/delete-image', async (req, res) => {
   try {
     const filePath = req.query.filePath;
@@ -309,12 +321,14 @@ app.delete('/api/delete-image', async (req, res) => {
   }
 });
 
+/** 9) إعادة تسمية ملف محتوى (مع تحديث الـ title داخله) */
 app.post('/api/rename-file', async (req, res) => {
   try {
     const { oldPath, newPath, newTitle } = req.body;
-    if(!oldPath || !newPath){
+    if(!oldPath || !newPath) {
       return res.json({ success:false, error:"Missing oldPath or newPath" });
     }
+
     const sha = await getFileSha(MAIN_REPO_NAME, "exp_data/"+oldPath);
     if(!sha){
       return res.json({ success:false, error:"File not found or no SHA for oldPath" });
@@ -322,54 +336,58 @@ app.post('/api/rename-file', async (req, res) => {
 
     const getUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
     const respGet = await fetch(getUrl, { headers: githubHeaders });
-    if(respGet.status!==200){
-      const t=await respGet.text();
+    if(respGet.status !== 200){
+      const t = await respGet.text();
       console.error("rename-file get error text:", t);
       return res.json({ success:false, error:t });
     }
-    const getJ=await respGet.json();
-    const oldDecoded= Buffer.from(getJ.content,'base64').toString('utf8');
+    const getJ = await respGet.json();
+    const oldDecoded = Buffer.from(getJ.content, 'base64').toString('utf8');
     let parsedOld;
     try {
-      parsedOld= JSON.parse(oldDecoded);
+      parsedOld = JSON.parse(oldDecoded);
     } catch(e){
-      parsedOld={ content:oldDecoded };
+      parsedOld = { content: oldDecoded };
     }
     if(newTitle){
-      parsedOld.title=newTitle;
+      parsedOld.title = newTitle;
     }
 
-    const updatedBase64= Buffer.from(JSON.stringify(parsedOld,null,2)).toString('base64');
-    const putUrl= `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
-    const putBody={
-      message:`Rename file to ${newPath}`,
-      content:updatedBase64,
-      sha:getJ.sha,
-      path:newPath
+    const updatedBase64 = Buffer.from(JSON.stringify(parsedOld, null, 2)).toString('base64');
+    const putUrl = `https://api.github.com/repos/${GITHUB_USER}/${MAIN_REPO_NAME}/contents/exp_data/${oldPath}`;
+    const putBody = {
+      message: `Rename file to ${newPath}`,
+      content: updatedBase64,
+      sha: getJ.sha,
+      path: newPath
     };
-    const respPut= await fetch(putUrl,{
-      method:'PUT',
-      headers:{...githubHeaders,'Content-Type':'application/json'},
-      body:JSON.stringify(putBody)
+    const respPut = await fetch(putUrl, {
+      method: 'PUT',
+      headers: { ...githubHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(putBody)
     });
-    const putJson=await respPut.json();
+    const putJson = await respPut.json();
     if(!putJson.content){
-      console.error("rename-file put error:",putJson);
-      return res.json({ success:false, error:putJson.message||'Could not rename file'});
+      console.error("rename-file put error:", putJson);
+      return res.json({ success:false, error:putJson.message || 'Could not rename file' });
     }
     return res.json({ success:true });
   } catch(e){
-    console.error("rename-file exception:",e);
-    return res.json({ success:false, error:e.toString()});
+    console.error("rename-file exception:", e);
+    return res.json({ success:false, error:e.toString() });
   }
 });
 
+/** تقديم أي ملف ثابت (ومن ضمنه admin.html) */
 app.use(express.static(__dirname));
-app.get('*',(req,res)=>{
-  res.sendFile(path.join(__dirname,'admin.html'));
+
+/** مسار احتياطي: أي طلب لا ينطبق على الـAPI أو ملف ثابت → أعد admin.html */
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-const port=process.env.PORT||3000;
-app.listen(port,()=>{
-  console.log("Server listening on port "+port);
+/** بدء السيرفر على بورت 3000 (محلي) أو ما تحدده Vercel */
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log("Server listening on port " + port);
 });
