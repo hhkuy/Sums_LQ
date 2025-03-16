@@ -97,8 +97,9 @@
       min-height: 200px;
     }
     /* الأزرار العائمة */
-
-    /* === تم التعليق على أزرار الأدوات/التريغرز العائمة كما طُلب إبقاؤها معطلة ===
+    /*
+      تم التعليق على أزرار الأدوات وإدارة التريغرز حسب طلبك
+      فقط أبقينا على زر التمرير لأعلى/لأسفل
     #floatManageTriggersBtn {
       position: fixed;
       width: 50px;
@@ -207,14 +208,12 @@
     .alert-success {
       margin-top: 10px;
     }
-    /* تحديد النص لإدخال الأدوات (بشكل بسيط) */
     .selection-guides {
       position: absolute;
       border: 2px dashed red;
       pointer-events: none;
       display: none;
     }
-    /* الرسالة الثابتة فوق زر Convert */
     #selectionDonePrompt {
       display: none;
       margin-top: 10px;
@@ -244,19 +243,16 @@
             <input type="text" id="newNodeTitle" class="form-control" placeholder="Title...">
           </div>
           <div class="col-md-4">
-            <!-- اختيار إن كان فرع (Branch) أم محتوى (Content) -->
             <select id="newNodeType" class="form-select">
               <option value="branch">Branch</option>
               <option value="content">Content</option>
             </select>
           </div>
           <div class="col-md-4">
-            <!-- زر إضافة الموضوع/الفرع/المحتوى -->
             <button class="btn btn-success btn-custom" onclick="addNode()">Add Node</button>
           </div>
         </div>
 
-        <!-- اختيار المكان الذي نضيفه تحته (جذر أم داخل أحدهم) -->
         <div class="row g-2 mt-3 align-items-center">
           <div class="col-md-12">
             <label>Select where to add:</label>
@@ -276,7 +272,6 @@
     <div class="card card-section">
       <div class="card-header">Manage Content (files with dataFile)</div>
       <div class="card-body">
-        <!-- Dropdown لاختيار العقد التي تم تعريفها كمحتوى فقط -->
         <div class="mb-3">
           <select id="contentNodesSelect" class="form-select">
             <option value="">-- Select Content Node --</option>
@@ -289,11 +284,9 @@
 
         <hr>
 
-        <!-- محرر الماركداون -->
         <label for="markdown-input" class="form-label">Markdown Editor (drag to scroll):</label>
         <textarea class="form-control" id="markdown-input"></textarea>
 
-        <!-- مساحة رسالة "Finished Selection?" مع زري Yes/No -->
         <div id="selectionDonePrompt">
           <div class="bg-light p-3 border rounded">
             <span>Finished text selection?</span>
@@ -302,7 +295,6 @@
           </div>
         </div>
 
-        <!-- زر واحد لتحويل -->
         <div class="row g-2 mt-2">
           <div class="col-md-12">
             <button class="btn btn-primary w-100 btn-custom" onclick="convertMarkdown()">
@@ -311,12 +303,10 @@
           </div>
         </div>
 
-        <!-- منطقة عرض النتيجة -->
         <div id="markdown-result" style="direction: ltr; margin-top:20px;"></div>
 
         <hr>
 
-        <!-- زر حفظ & زر طباعة -->
         <div class="row g-2">
           <div class="col-md-6">
             <button class="btn btn-info btn-custom" onclick="printResult()">Print / PDF</button>
@@ -329,12 +319,13 @@
     </div>
   </div>
 
-  <!-- === تم التعليق على الأزرار العائمة الخاصة بإدارة التريغرز كما طُلب إزالتها ===
+  <!-- تم التعليق على الأزرار العائمة الخاصة بالأدوات وإدارة التريغر -->
+  <!--
   <button id="floatManageTriggersBtn" onclick="openManageTriggersModal()">⚒</button>
   <button id="floatToolsBtn" onclick="handleToolsModalClick()">⚙</button>
   -->
 
-  <!-- زر عائم للتمرير -->
+  <!-- زر عائم للتمرير لأعلى/لأسفل فقط -->
   <button id="floatScrollBtn" onclick="toggleScroll()">↓</button>
 
   <!-- نظام النوافذ المنبثقة (modal) -->
@@ -366,8 +357,8 @@
     </div>
   </div>
 
-  <!-- === تم التعليق على نوافذ إدارة الأدوات/التريغرز ===
-  <div class="modal-overlay" id="toolsOverlay">
+  <!-- نفس نوافذ Tools/Triggers تم إبقاؤها لكن معطّلة -->
+  <div class="modal-overlay" id="toolsOverlay" style="display:none;">
     <div class="modal-box" id="toolsModalBox">
       <h3>Tools & Triggers</h3>
       <div class="d-grid gap-2">
@@ -383,7 +374,8 @@
       </div>
     </div>
   </div>
-  <div class="modal-overlay" id="manageTriggersOverlay">
+
+  <div class="modal-overlay" id="manageTriggersOverlay" style="display:none;">
     <div class="modal-box" id="manageTriggersModalBox">
       <h3>Manage Inserted Triggers</h3>
       <div id="insertedTriggersList" class="mb-3" style="text-align:left; max-height:300px; overflow:auto;"></div>
@@ -392,7 +384,7 @@
       </div>
     </div>
   </div>
-  <div class="modal-overlay" id="triggerFormOverlay">
+  <div class="modal-overlay" id="triggerFormOverlay" style="display:none;">
     <div class="modal-box" style="text-align: left;">
       <h3 id="triggerFormTitle">Add Link</h3>
       <div id="triggerFormContent"></div>
@@ -401,30 +393,26 @@
       </div>
     </div>
   </div>
-  -->
 
   <!-- نافذة منبثقة لرفع الصور -->
-  <div class="modal-overlay" id="imageUploadOverlay">
+  <div class="modal-overlay" id="imageUploadOverlay" style="display:none;">
     <div class="modal-box" style="text-align: left;">
       <h3>Upload or Insert Image</h3>
       <div>
-        <!-- اختيار صورة من الجهاز -->
         <label class="form-label">Upload from device:</label>
         <input type="file" id="localImageFile" class="form-control" multiple>
         <button class="btn btn-success w-100 mt-2" onclick="uploadLocalImages()">Upload Selected</button>
-        <div class="upload-progress" id="uploadProgress">
+        <div class="upload-progress" id="uploadProgress" style="display:none;">
           <div class="progress mt-2">
             <div class="progress-bar" role="progressbar" style="width: 0%;" id="uploadProgressBar">0%</div>
           </div>
         </div>
         <hr>
-        <!-- أو إدخال رابط صورة مباشر -->
         <label class="form-label">Or use image link:</label>
         <input type="text" id="imageLinkInput" class="form-control" placeholder="https://...">
         <button class="btn btn-primary w-100 mt-2" onclick="insertImageLink()">Insert Link</button>
       </div>
       <hr>
-      <!-- قائمة الصور المرفوعة مع زر الحذف -->
       <div>
         <h5>Uploaded Images:</h5>
         <ul class="uploaded-images-list" id="uploadedImagesList"></ul>
@@ -441,9 +429,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
   <script>
-    /****
-     *            نظام النوافذ المنبثقة (Alert, Confirm, Prompt)
-     ****/
+    /****  نظام النوافذ المنبثقة (Alert, Confirm, Prompt)  ****/
     let alertOverlay = document.getElementById('alertOverlay');
     let alertMsg = document.getElementById('alertMsg');
     let alertOkBtn = document.getElementById('alertOkBtn');
@@ -500,14 +486,11 @@
       });
     }
 
-    // استبدال دوال alert/confirm/prompt الافتراضية:
     window.alert = async function(msg) { await customAlert(msg); };
     window.confirm = async function(msg) { return customConfirm(msg); };
     window.prompt = async function(msg, defVal) { return customPrompt(msg, defVal); };
 
-    /****
-     *  تفعيل السحب داخل الـ textarea للتمرير
-     ****/
+    /****  تفعيل السحب داخل الـ textarea للتمرير  ****/
     (function enableDragScroll(){
       const mdInput = document.getElementById('markdown-input');
       let isDown = false, startY, scrollTop;
@@ -522,7 +505,7 @@
         if(!isDown) return;
         e.preventDefault();
         const y = e.pageY - mdInput.offsetTop;
-        const walk = (y - startY) * 1.5;
+        const walk = (y - startY) * 1.5; 
         mdInput.scrollTop = scrollTop - walk;
       });
     })();
@@ -531,19 +514,17 @@
     function toggleScroll(){
       const btn = document.getElementById('floatScrollBtn');
       if(scrollDown){
-        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         btn.textContent = '↑';
         scrollDown = false;
       } else {
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         btn.textContent = '↓';
         scrollDown = true;
       }
     }
 
-    /****
-     *                 إدارة exp_topics.json
-     ****/
+    /****  إدارة exp_topics.json  ****/
     let expTopics = null;
     let topicsSha = null;
 
@@ -864,7 +845,7 @@
         if(createRes.success){
           newObj.dataFile = fileName;
         } else {
-          alert("Could not create file for content. " + (createRes.error||''));
+          alert("Could not create file for content. " + (createRes.error||'' ));
           return;
         }
       }
@@ -900,12 +881,7 @@
         let chainTitles = getTitlesChain(realPath);
         let parentChain = chainTitles.map(t => t.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase()).join('_');
         let childPart = newTitle.replace(/\s+/g, '_').replace(/[^\w_\-]/g, '').toLowerCase();
-        let finalName = "";
-        if(parentChain){
-          finalName = parentChain + "_" + childPart + ".json";
-        } else {
-          finalName = childPart + ".json";
-        }
+        let finalName = parentChain ? (parentChain + "_" + childPart + ".json") : (childPart + ".json");
         return finalName;
       }
     }
@@ -948,9 +924,7 @@
       }
     }
 
-    /****
-     *                 إدارة المحتوى
-     ****/
+    /****  إدارة المحتوى  ****/
     let currentContentFile = null;
     let currentContentSha = null;
     let originalContentHtml = '';
@@ -961,10 +935,7 @@
         let n = nodes[i];
         let currentPrefix = prefix ? (prefix + " > " + n.title) : n.title;
         if(n.dataFile){
-          result.push({
-            file: n.dataFile,
-            fullPath: currentPrefix
-          });
+          result.push({ file: n.dataFile, fullPath: currentPrefix });
         }
         if(n.subtopics && n.subtopics.length>0){
           result = result.concat(collectContentNodes(n.subtopics, currentPrefix));
@@ -1004,15 +975,14 @@
         if(!contentObj.content) contentObj.content = "";
         originalContentHtml = contentObj.content;
 
-        // === Added or Modified code ===
-        // نضيف ملحق turndown الذي يعيد تحويل السبان المخصصة إلى الصيغة الأصلية (مثلاً bu(...))
+        // نضيف قاعدة لإعادة تحويل العناصر (span.multi-trigger إلخ) إلى صيغتها الأصلية (bu (...)) أو ( v: ... )
         let turndownService = new TurndownService();
         turndownService.addRule('customTriggers', {
-          filter: function(node, options) {
-            // أي عنصر يحوي data-original-md نعيده نصًا كما هو
+          filter: function (node, options) {
+            // أي عنصر عنده data-original-md نُرجعه كما هو
             return node.getAttribute && node.getAttribute('data-original-md');
           },
-          replacement: function(content, node, options) {
+          replacement: function (content, node, options) {
             return node.getAttribute('data-original-md');
           }
         });
@@ -1047,7 +1017,7 @@
       try {
         let r = await fetch('/api/save-content-file', {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type':'application/json' },
           body: JSON.stringify(payload)
         });
         let j = await r.json();
@@ -1064,9 +1034,7 @@
       }
     }
 
-    /****
-     *   محرر الماركداون
-     ****/
+    /****  محرر الماركداون  ****/
     let currentDirection = 'ltr';
     function detectTextDirection(text) {
       let arabicCount = 0, totalCount = 0;
@@ -1080,15 +1048,12 @@
       return (arabicCount / totalCount > 0.3) ? 'rtl' : 'ltr';
     }
 
-    // === Added or Modified code ===
-    // دالة لتحويل نص HTML النهائي بحيث يفسر العبارات مثل:
-    // 1) bu ( q: ... / yv: ... / p: ... ) => <span class="multi-trigger"... data-original-md="bu ( q: ... )">bu(...)</span>
-    // 2) ( v: ... ) أو ( yv: ... ) أو ( p: ... ) أو ( q: ... ) أو ( t: ... ) أو ( l: ... ) => <span class="...-trigger" data-...="..." data-original-md="( v: ... )">( v: ... )</span>
-    // ستعمل عبر Regex على الـ HTML النهائي بعد marked.parse().
+    // دالة لتحويل محتوى marked إلى عناصر تريغر (bu(...) أو ( v: ... ) إلخ)
     function transformCustomTriggers(html) {
-      // أولاً: تعويض أي "bu ( ... )" متعدد:
+      // 1) نحول "bu ( ... )" إلى <span class="multi-trigger" ... data-original-md="bu(...)" >...
       let buRegex = /(bu)\s*\(\s*([^)]*?)\s*\)/gi;
       html = html.replace(buRegex, (match, buWord, inside) => {
+        // مثل: "q: anat-lowe-q3 anat-lowe-q4 / yv: https://youtu.be..."
         let parts = inside.split('/');
         let dataAttrs = {};
         parts.forEach(part => {
@@ -1096,7 +1061,7 @@
           let colonIndex = trimmed.indexOf(':');
           if(colonIndex > -1) {
             let key = trimmed.slice(0, colonIndex).trim();
-            let val = trimmed.slice(colonIndex+1).trim();
+            let val = trimmed.slice(colonIndex + 1).trim();
             if(key === 'q') {
               dataAttrs['data-qids'] = val.replace(/\s+/g, ',');
             } else if(key === 'yv') {
@@ -1116,27 +1081,29 @@
         return `<span class="multi-trigger" ${attrsStr} data-original-md="${match}">${match}</span>`;
       });
 
-      // الآن نعالج العبارات الفردية
+      // 2) نحول الصيغ المفردة: ( yv: ... ) أو ( v: ... ) أو ( q: ... ) الخ.
+      //    → <span class="video-trigger" data-vid-src="..." data-original-md="( yv: ... )">( yv: ... )</span>
       let singleRegex = /\(\s*(yv|v|p|q|t|l)\s*:\s*([^)]*)\)/gi;
       html = html.replace(singleRegex, (fullMatch, key, val) => {
         let dataAttr = '';
         let className = '';
+        let trimmedVal = val.trim();
         if(key === 'yv' || key === 'v') {
           className = 'video-trigger';
-          dataAttr = `data-vid-src="${val.trim()}"`;
+          dataAttr = `data-vid-src="${trimmedVal}"`;
         } else if(key === 'p') {
           className = 'image-trigger';
-          dataAttr = `data-img-src="${val.trim()}"`;
+          dataAttr = `data-img-src="${trimmedVal}"`;
         } else if(key === 'q') {
           className = 'question-trigger';
-          let qids = val.trim().replace(/\s+/g, ',');
-          dataAttr = `data-qids="${qids}"`;
+          // لو عدة QID بفواصل
+          dataAttr = `data-qids="${trimmedVal.replace(/\s+/g, ',')}"`;
         } else if(key === 't') {
           className = 'text-trigger';
-          dataAttr = `data-text-content="${val.trim()}"`;
+          dataAttr = `data-text-content="${trimmedVal}"`;
         } else if(key === 'l') {
           className = 'link-trigger';
-          dataAttr = `data-link-href="${val.trim()}"`;
+          dataAttr = `data-link-href="${trimmedVal}"`;
         }
         return `<span class="${className}" ${dataAttr} data-original-md="${fullMatch}">${fullMatch}</span>`;
       });
@@ -1146,13 +1113,16 @@
 
     function convertMarkdown() {
       const markdownText = document.getElementById('markdown-input').value;
-      const htmlContent = marked.parse(markdownText);
+      // نحوّل إلى HTML
+      const rawHtml = marked.parse(markdownText);
 
+      // ننشئ HTML نهائي فيه عناصر triggers بدلاً من النصوص
+      const finalHtml = transformCustomTriggers(rawHtml);
+
+      // كشف اتجاه اللغة
       currentDirection = detectTextDirection(markdownText);
 
-      // خطوة تحويل التريغرز المخصصة:
-      const finalHtml = transformCustomTriggers(htmlContent);
-
+      // العرض:
       document.getElementById('markdown-result').innerHTML = finalHtml;
       document.getElementById('markdown-result').style.direction = currentDirection;
     }
@@ -1168,14 +1138,12 @@
         body {
           font-family: 'Roboto', sans-serif;
           background: linear-gradient(135deg, #faf3e7, #eef7f6);
-          margin: 0;
-          padding: 0;
-          color: #2c3e50;
+          margin: 0; padding: 0; color: #2c3e50;
         }
         #printResult { padding: 20px; }
         `;
-      printWindow.document.write(
-        `<html lang="${langAttr}" dir="${currentDirection}">
+      printWindow.document.write(`
+        <html lang="${langAttr}" dir="${currentDirection}">
           <head>
             <meta charset="UTF-8" />
             <title>Print Result</title>
@@ -1188,23 +1156,33 @@
               ${resultDivContent}
             </div>
             <script>
-              window.onload = function() { window.print(); }
+              window.onload = function(){ window.print(); }
             <\/script>
           </body>
-        </html>`
-      );
+        </html>
+      `);
       printWindow.document.close();
     }
 
-    /*
-    تم التعليق على بعض الدوال المرتبطة بالأزرار العائمة للـ triggers
-    مثل: handleToolsModalClick, openToolsModal, closeToolsModal,... إلخ
-    */
+    /****  (الأزرار العائمة للتريغر تم تعطيلها)  ****/
+    function handleToolsModalClick(){}
+    function openToolsModal(){}
+    function closeToolsModal(){}
+    function openManageTriggersModal(){}
+    function closeManageTriggersModal(){}
+    let selectionInProgress = false;
+    let userSelectionRange = null;
+    let currentTriggerType = null;
+    function openTriggerForm(type){}
+    function closeTriggerForm(){}
+    function startSelectionMode(){}
+    function selectionDoneYes(){}
+    function selectionDoneNo(){}
+    function applyTriggerInsertion(){}
 
-    /****
-     * رفع الصور
-     ****/
+    /****  رفع الصور  ****/
     function openImageUploader(){
+      // معطل زر الأدوات
       document.getElementById('imageUploadOverlay').style.display = 'flex';
       document.getElementById('localImageFile').value = "";
       document.getElementById('uploadProgress').style.display = 'none';
@@ -1234,10 +1212,7 @@
         let reader = new FileReader();
         reader.onload = async function(e){
           let base64Data = e.target.result.split(',')[1];
-          let body = {
-            name: f.name,
-            base64: base64Data
-          };
+          let body = { name: f.name, base64: base64Data };
           document.getElementById('uploadProgressBar').style.width = '50%';
           document.getElementById('uploadProgressBar').textContent = 'Uploading... (50%)';
           let r = await fetch('/api/upload-image', {
